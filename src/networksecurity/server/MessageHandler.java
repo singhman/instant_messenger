@@ -65,7 +65,7 @@ public class MessageHandler implements Runnable {
 	}
 	
 	private void helloResponse(String message){
-		
+		System.out.print("Message:" + message);
 	}
 	
 	private void authenticatClient(String message){

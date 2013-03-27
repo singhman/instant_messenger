@@ -25,6 +25,7 @@ public class ClientInfo {
 	private int serverPort;
 	private InetAddress serverIp;
 	private PublicKey serverPublicKey;
+	private CommandHandler commandHandler;
 
 	public ClientInfo(ClientConfigReader config) {
 		this.setClientPort(config.getPort());
@@ -150,5 +151,8 @@ public class ClientInfo {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		this.commandHandler = new CommandHandler(this, this.getClientSocket(), this.getServerIp(), this.getServerPort());
+		(new Thread(this.commandHandler)).start();
 	}
 }
