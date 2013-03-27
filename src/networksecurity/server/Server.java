@@ -1,5 +1,7 @@
 package networksecurity.server;
 
+import java.io.File;
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.security.PrivateKey;
@@ -23,8 +25,16 @@ public class Server {
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-
-		String configFile = "resources/server.cfg";
+		
+		try {
+			System.out.println(new File(".")
+			.getCanonicalPath());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String configFile = "src/networksecurity/resources/server.cfg";
 		if (args.length == 1) {
 			configFile = args[0];
 		}
@@ -56,8 +66,7 @@ public class Server {
 		}
 
 		try {
-			this.privateKey = Crypto
-					.readPrivateKey(serverConfig.privateKeyLocation);
+			this.privateKey = Crypto.readPrivateKey(serverConfig.privateKeyLocation);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
@@ -82,9 +91,9 @@ public class Server {
 				String received = new String(packet.getData(), 0,
 						packet.getLength(), Crypto.CHARSET);
 
-//				MessageHandler handler = new MessageHandler(this, received,
-//						packet.getAddress(), packet.getPort(), socket);
-//				(new Thread(handler)).start();
+				MessageHandler handler = new MessageHandler(this, received,
+						packet.getAddress(), packet.getPort(), socket);
+				(new Thread(handler)).start();
 			}
 
 		} catch (Exception e) {

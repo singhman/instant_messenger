@@ -3,6 +3,7 @@ package networksecurity.common;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.KeyFactory;
@@ -71,6 +72,14 @@ public class Crypto{
 	public static PrivateKey readPrivateKey(String filename)
 	    throws Exception
 	{
+		try {
+			System.out.println(new File(".")
+			.getCanonicalPath());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
 		File f = new File(filename);
 		FileInputStream fis = new FileInputStream(f);
 		DataInputStream dis = new DataInputStream(fis);
