@@ -63,7 +63,7 @@ public class CommandHandler implements Runnable {
 					System.out
 							.print("Please don't waste resources by sending empty message");
 				} else {
-					System.out.println("CommandNotSupported. Try these [list | logout | send <message>]");
+					this.usage();
 				}
 			}
 
@@ -78,5 +78,9 @@ public class CommandHandler implements Runnable {
 
 	private void enterCommand() {
 		System.out.println(">>");
+	}
+	
+	private void usage(){
+		System.out.println("Usage: [list | logout | send <message>]");
 	}
 }

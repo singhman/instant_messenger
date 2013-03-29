@@ -42,7 +42,7 @@ public class Client {
 				.getClientPort()));
 
 		String message = MessageType.CLIENT_SERVER_HELLO.createMessage("HELLO");
-		byte[] messageBytes = message.getBytes(Crypto.CHARSET);
+		byte[] messageBytes = message.getBytes(CryptoHelper.CHARSET);
 
 		DatagramPacket packet = new DatagramPacket(messageBytes,
 				messageBytes.length, clientInfo.getServerIp(),
@@ -65,7 +65,7 @@ public class Client {
 			while(running){
 				
 				clientInfo.getClientSocket().receive(packet);
-				String received = new String(packet.getData(),0, packet.getLength(),Crypto.CHARSET);
+				String received = new String(packet.getData(),0, packet.getLength(),CryptoHelper.CHARSET);
 				
 				MessageHandler handler = new MessageHandler(clientInfo, received, packet.getAddress(), packet.getPort(),
 						clientInfo.getClientSocket());

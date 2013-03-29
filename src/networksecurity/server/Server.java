@@ -8,15 +8,13 @@ import java.security.PrivateKey;
 import java.util.HashMap;
 
 import networksecurity.common.ConfigReader.ConfigReaderException;
-import networksecurity.common.Crypto;
+import networksecurity.common.CryptoHelper;
 import networksecurity.common.ServerConfigReader;
 
 public class Server {
 
-	/* Server Info */
-	private int serverPort;
-	private PrivateKey privateKey;
-	private final HashMap<String, User> users = new HashMap<String, User>();
+	public ServerInfo serverInfo = null;
+	public final HashMap<String, User> users = new HashMap<String, User>();
 
 	/**
 	 * Entry point of the server
@@ -27,7 +25,7 @@ public class Server {
 		// TODO Auto-generated method stub
 		
 		try {
-			System.out.println(new File(".")
+			System.out.println("DEBUG:" + new File(".")
 			.getCanonicalPath());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -59,16 +57,15 @@ public class Server {
 	}
 
 	public void initializeServerInfo(ServerConfigReader serverConfig) {
-		this.serverPort = serverConfig.port;
-
+		try{
+			serverInfo = new ServerInfo(CryptoHelper.readPrivateKey(serverConfig.privateKeyLocation), serverConfig.port);
+		}
+		catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+		
 		for (final User user : serverConfig.users) {
 			users.put(user.getUsername(), user);
-		}
-
-		try {
-			this.privateKey = Crypto.readPrivateKey(serverConfig.privateKeyLocation);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
 		}
 	}
 
@@ -81,7 +78,7 @@ public class Server {
 
 		// Start Listening
 		try {
-			DatagramSocket socket = new DatagramSocket(this.serverPort);
+			DatagramSocket socket = new DatagramSocket(this.serverInfo.getServerPort());
 			DatagramPacket packet = new DatagramPacket(buf, buf.length);
 
 			System.out.println("Server running...");
@@ -89,7 +86,7 @@ public class Server {
 			while (running) {
 				socket.receive(packet);
 				String received = new String(packet.getData(), 0,
-						packet.getLength(), Crypto.CHARSET);
+						packet.getLength(), CryptoHelper.CHARSET);
 
 				MessageHandler handler = new MessageHandler(this, received,
 						packet.getAddress(), packet.getPort(), socket);

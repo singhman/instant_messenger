@@ -6,11 +6,14 @@ import java.io.InputStreamReader;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.security.Key;
+import java.security.KeyPair;
 import java.security.PublicKey;
 import java.util.UUID;
 
+import javax.crypto.SecretKey;
+
 import networksecurity.common.ClientConfigReader;
-import networksecurity.common.Crypto;
+import networksecurity.common.CryptoHelper;
 
 public class ClientInfo {
 
@@ -26,6 +29,8 @@ public class ClientInfo {
 	private InetAddress serverIp;
 	private PublicKey serverPublicKey;
 	private CommandHandler commandHandler;
+	private KeyPair dhKeyPair;
+	private SecretKey secretKey;
 
 	public ClientInfo(ClientConfigReader config) {
 		this.setClientPort(config.getPort());
@@ -36,7 +41,7 @@ public class ClientInfo {
 
 	public PublicKey getServerPublicKeyFromFile(ClientConfigReader config) {
 		try {
-			return Crypto.readPublicKey(config.getPublicKeyLocation());
+			return CryptoHelper.readPublicKey(config.getPublicKeyLocation());
 		} catch (Exception e) {
 			System.out.println("Unable to read server's public key");
 			throw new RuntimeException(e);
@@ -87,6 +92,14 @@ public class ClientInfo {
 	public void setServerPublicKey(PublicKey key) {
 		this.serverPublicKey = key;
 	}
+	
+	public void setdhKeyPair(KeyPair dhKeyPair){
+		this.dhKeyPair = dhKeyPair;
+	}
+	
+	public void setSecretKey(SecretKey key){
+		this.secretKey = key;
+	}
 
 	/* getters */
 	public String getUserName() {
@@ -131,6 +144,14 @@ public class ClientInfo {
 
 	public PublicKey getServerPublicKey() {
 		return this.serverPublicKey;
+	}
+	
+	public KeyPair getdhKeyPair(){
+		return this.dhKeyPair;
+	}
+	
+	public SecretKey getSecretKey(){
+		return this.secretKey;
 	}
 
 	/* methods */
