@@ -15,6 +15,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Signature;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -29,7 +30,7 @@ import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class CryptoHelper {
+public class CryptoLibrary {
 
 	public static final String CHARSET = "ISO-8859-1";
 	public static final String AES_CIPHER = "AES";
@@ -38,6 +39,7 @@ public class CryptoHelper {
 	public static final int AES_KEY_SIZE_BYTES = AES_KEY_SIZE_BITS / 8;
 	private static final int IV_LENGTH = 16;
 	private static final String RSA_CIPHER = "RSA";
+	private static final String RSA_SHA_CIPHER = "SHA1withRSA";
 	private static final String SHA1 = "SHA1";
 	private static final String HMAC_MODE = "HmacSHA1";
 	private static final String DIFFIE_HELLMAN = "DH";
@@ -97,7 +99,7 @@ public class CryptoHelper {
 		try {
 			return String.format("%x",
 					new BigInteger(hash(String.valueOf(rand.nextLong()))
-							.getBytes(CryptoHelper.CHARSET)));
+							.getBytes(CryptoLibrary.CHARSET)));
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 			throw new IllegalStateException(e);
@@ -115,9 +117,8 @@ public class CryptoHelper {
 		try {
 			MessageDigest sha1 = MessageDigest.getInstance(SHA1);
 
-			return new String(
-					sha1.digest(value.getBytes(CryptoHelper.CHARSET)),
-					CryptoHelper.CHARSET);
+			return new String(sha1.digest(value.getBytes(CryptoLibrary.CHARSET)),
+					CryptoLibrary.CHARSET);
 		} catch (Exception e) {
 			throw new IllegalStateException(e);
 		}
@@ -140,8 +141,8 @@ public class CryptoHelper {
 			final Mac mac = Mac.getInstance(HMAC_MODE);
 
 			mac.init(key);
-			return new String(mac.doFinal(msg.getBytes(CryptoHelper.CHARSET)),
-					CryptoHelper.CHARSET);
+			return new String(mac.doFinal(msg.getBytes(CryptoLibrary.CHARSET)),
+					CryptoLibrary.CHARSET);
 
 		} catch (Exception e) {
 			throw new HmacException(e);
@@ -166,7 +167,7 @@ public class CryptoHelper {
 
 			cipher.init(Cipher.ENCRYPT_MODE, key);
 
-			return new String(cipher.doFinal(msg.getBytes(CryptoHelper.CHARSET)), CryptoHelper.CHARSET);
+			return new String(cipher.doFinal(msg.getBytes(CryptoLibrary.CHARSET)), CryptoLibrary.CHARSET);
 		} catch (Exception e) {
 			throw new EncryptionException(e);
 		}
@@ -190,10 +191,36 @@ public class CryptoHelper {
 
 			cipher.init(Cipher.DECRYPT_MODE, key);
 
-			return new String(cipher.doFinal(msg.getBytes(CryptoHelper.CHARSET)), CryptoHelper.CHARSET);
+			return new String(cipher.doFinal(msg.getBytes(CryptoLibrary.CHARSET)), CryptoLibrary.CHARSET);
 		} catch (Exception e) {
 			throw new DecryptionException(e);
 		}
+	}
+	
+	/* Sign the input using the private key of the sender for integrity */
+	public static byte[] sign(PrivateKey privateKey, String input) throws Exception {
+		Signature signature = Signature.getInstance(RSA_SHA_CIPHER);
+		signature.initSign(privateKey);
+
+		signature.update(input.getBytes());
+		return signature.sign();
+	}
+
+	/*
+	 * Verify the digital signature using the Public Key of the sender and
+	 * compare both the message digests to verify
+	 */
+	public static boolean verify(PublicKey publicKey,
+			String input, byte[] sigBytes) throws Exception {
+		Signature signature = Signature.getInstance("SHA1withRSA");
+		
+		signature.initVerify(publicKey);
+		signature.update(input.getBytes());
+
+		if (signature.verify(sigBytes)) {
+			return true;
+		} 
+		return false;
 	}
 
 	/*
@@ -267,11 +294,10 @@ public class CryptoHelper {
 
 			cipher.init(Cipher.ENCRYPT_MODE, key, initVector);
 
-			System.out.println("Encrypt: IV Length" + initVector.toString().length());
-			return new String(initVectorBytes, CryptoHelper.CHARSET)
+			return new String(initVectorBytes, CryptoLibrary.CHARSET)
 					+ new String(cipher.doFinal(msg
-							.getBytes(CryptoHelper.CHARSET)),
-							CryptoHelper.CHARSET);
+							.getBytes(CryptoLibrary.CHARSET)),
+							CryptoLibrary.CHARSET);
 		} catch (Exception e) {
 			throw new EncryptionException(e);
 		}
@@ -292,16 +318,16 @@ public class CryptoHelper {
 			throws DecryptionException {
 		try {
 			final IvParameterSpec initVector = new IvParameterSpec(msg
-					.substring(0, IV_LENGTH).getBytes(CryptoHelper.CHARSET));
-			System.out.println("Decrypt: IV Length" + initVector.toString().length());
+					.substring(0, IV_LENGTH).getBytes(CryptoLibrary.CHARSET));
+			
 			final Cipher cipher = Cipher.getInstance(AES_MODE);
 
 			msg = msg.substring(IV_LENGTH);
 			cipher.init(Cipher.DECRYPT_MODE, key, initVector);
 
 			return new String(
-					cipher.doFinal(msg.getBytes(CryptoHelper.CHARSET)),
-					CryptoHelper.CHARSET);
+					cipher.doFinal(msg.getBytes(CryptoLibrary.CHARSET)),
+					CryptoLibrary.CHARSET);
 		} catch (Exception e) {
 			throw new DecryptionException(e);
 		}

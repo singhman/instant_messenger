@@ -3,23 +3,19 @@ package networksecurity.client;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
+
+import networksecurity.common.CryptoLibrary;
+import networksecurity.common.CryptoLibrary.EncryptionException;
+import networksecurity.common.HeaderHandler;
+import networksecurity.common.MessageType;
 
 public class CommandHandler implements Runnable {
 
 	private ClientInfo client;
-	private DatagramSocket outSocket;
-	private InetAddress serverIp;
-	private int serverPort;
 
-	public CommandHandler(ClientInfo client, DatagramSocket outSocket,
-			InetAddress serverIp, int port) {
+	public CommandHandler(ClientInfo client) {
 		// TODO Auto-generated constructor stub
 		this.client = client;
-		this.outSocket = outSocket;
-		this.serverIp = serverIp;
-		this.serverPort = port;
 	}
 
 	public void run() {
@@ -34,7 +30,7 @@ public class CommandHandler implements Runnable {
 		BufferedReader reader = new BufferedReader(inputStream);
 
 		for (enterCommand(); running && !Thread.interrupted(); enterCommand()) {
-			
+
 			try {
 				command = reader.readLine();
 			} catch (IOException e1) {
@@ -54,6 +50,7 @@ public class CommandHandler implements Runnable {
 			if (length == 1) {
 				if (argsStrings[0].toUpperCase().equals(
 						CommandType.LIST.toString())) {
+					listOnlineUsers();
 
 				} else if (argsStrings[0].toUpperCase().equals(
 						CommandType.LOGOUT.toString())) {
@@ -79,8 +76,50 @@ public class CommandHandler implements Runnable {
 	private void enterCommand() {
 		System.out.println(">>");
 	}
-	
-	private void usage(){
+
+	private void usage() {
 		System.out.println("Usage: [list | logout | send <message>]");
+	}
+
+	private void listOnlineUsers() {
+		if (!this.client.isLoggedIn()) {
+			System.out.print("Client is not logged in onto the server");
+			return;
+		}
+
+		long currentTime = System.currentTimeMillis();
+		this.client.setUserListTimestamp(currentTime);
+
+		String[] message = new String[2];
+		message[0] = String.valueOf(this.client.getUserId());
+
+		String[] encryptedMessage = new String[2];
+		encryptedMessage[0] = "LIST";
+		encryptedMessage[1] = String.valueOf(currentTime);
+
+		try {
+			message[1] = CryptoLibrary.aesEncrypt(this.client.getSecretKey(),
+					HeaderHandler.pack(encryptedMessage));
+
+			// Send List Command
+			sendMessageToServer(HeaderHandler.pack(message),
+					MessageType.CLIENT_SERVER_LIST);
+
+		} catch (EncryptionException e1) {
+			System.out.println("Error encryting list command");
+			e1.printStackTrace();
+		}
+	}
+
+	private void sendMessageToServer(String message, MessageType messageType) {
+		this.client.sendMessage(message, messageType, this.client
+				.getConnectionInfo().getServerIp(), this.client
+				.getConnectionInfo().getServerPort());
+	}
+
+	private void sendMessageToClient(String message, MessageType messageType) {
+		this.client.sendMessage(message, messageType, this.client
+				.getConnectionInfo().getServerIp(), this.client
+				.getConnectionInfo().getServerPort());
 	}
 }

@@ -3,8 +3,11 @@ package networksecurity.client;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.SocketException;
 import java.security.Key;
 import java.security.KeyPair;
 import java.security.PublicKey;
@@ -13,35 +16,31 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 import networksecurity.common.ClientConfigReader;
-import networksecurity.common.CryptoHelper;
+import networksecurity.common.CryptoLibrary;
+import networksecurity.common.MessageType;
 
 public class ClientInfo {
 
 	private String username;
 	private String password;
 	private UUID userId;
-	private int clientPort;
-	private InetAddress clientIp;
+	private long userListTimeStamp;
+	private ConnectionInfo connectionInfo;
 	private Key clientServerKey;
 	private Key clientClientKey;
-	private DatagramSocket clientSocket;
-	private int serverPort;
-	private InetAddress serverIp;
 	private PublicKey serverPublicKey;
-	private CommandHandler commandHandler;
 	private KeyPair dhKeyPair;
 	private SecretKey secretKey;
+	private boolean isLoogedIn = false;
 
 	public ClientInfo(ClientConfigReader config) {
-		this.setClientPort(config.getPort());
-		this.setServerPort(config.getServerPort());
-		this.setServerIp(config.getServerAddress());
+		this.connectionInfo = new ConnectionInfo(config.getPort(), config.getServerAddress(), config.getServerPort());
 		this.setServerPublicKey(getServerPublicKeyFromFile(config));
 	}
 
 	public PublicKey getServerPublicKeyFromFile(ClientConfigReader config) {
 		try {
-			return CryptoHelper.readPublicKey(config.getPublicKeyLocation());
+			return CryptoLibrary.readPublicKey(config.getPublicKeyLocation());
 		} catch (Exception e) {
 			System.out.println("Unable to read server's public key");
 			throw new RuntimeException(e);
@@ -61,32 +60,16 @@ public class ClientInfo {
 		this.userId = userId;
 	}
 
-	public void setClientPort(int port) {
-		this.clientPort = port;
+	public void setUserListTimestamp(long timestamp){
+		this.userListTimeStamp = timestamp;
 	}
-
-	public void setClientIp(InetAddress ipAddress) {
-		this.clientIp = ipAddress;
-	}
-
+	
 	public void setClientServerKey(Key clientServerKey) {
 		this.clientServerKey = clientServerKey;
 	}
 
 	public void setClientClientKey(Key clientclientKey) {
 		this.clientClientKey = clientclientKey;
-	}
-
-	public void setClientSocket(DatagramSocket clientSocket) {
-		this.clientSocket = clientSocket;
-	}
-
-	public void setServerPort(int port) {
-		this.serverPort = port;
-	}
-
-	public void setServerIp(InetAddress ipAddress) {
-		this.serverIp = ipAddress;
 	}
 
 	public void setServerPublicKey(PublicKey key) {
@@ -99,6 +82,10 @@ public class ClientInfo {
 	
 	public void setSecretKey(SecretKey key){
 		this.secretKey = key;
+	}
+	
+	public void setIsLoggedIn(boolean value){
+		this.isLoogedIn = value;
 	}
 
 	/* getters */
@@ -113,13 +100,13 @@ public class ClientInfo {
 	public UUID getUserId() {
 		return this.userId;
 	}
-
-	public int getClientPort() {
-		return this.clientPort;
+	
+	public long getUserListTimestamp(){
+		return this.userListTimeStamp;
 	}
-
-	public InetAddress getClientIp() {
-		return this.clientIp;
+	
+	public ConnectionInfo getConnectionInfo(){
+		return this.connectionInfo;
 	}
 
 	public Key getClientServerKey() {
@@ -130,28 +117,20 @@ public class ClientInfo {
 		return this.clientClientKey;
 	}
 
-	public DatagramSocket getClientSocket() {
-		return this.clientSocket;
-	}
-
-	public int getServerPort() {
-		return this.serverPort;
-	}
-
-	public InetAddress getServerIp() {
-		return this.serverIp;
-	}
-
 	public PublicKey getServerPublicKey() {
 		return this.serverPublicKey;
 	}
 	
-	public KeyPair getdhKeyPair(){
+	public KeyPair getDHKeyPair(){
 		return this.dhKeyPair;
 	}
 	
 	public SecretKey getSecretKey(){
 		return this.secretKey;
+	}
+	
+	public boolean isLoggedIn(){
+		return this.isLoogedIn;
 	}
 
 	/* methods */
@@ -172,8 +151,64 @@ public class ClientInfo {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		this.commandHandler = new CommandHandler(this, this.getClientSocket(), this.getServerIp(), this.getServerPort());
-		(new Thread(this.commandHandler)).start();
+		this.sendHelloToServer();
+	}
+	
+	public void sendHelloToServer() throws Exception{
+		try {
+			this.connectionInfo.setClientSocket(new DatagramSocket(this
+					.getConnectionInfo().getClientPort()));
+		} catch (SocketException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+
+		String message = MessageType.CLIENT_SERVER_HELLO.createMessage("HELLO");
+		byte[] messageBytes = null;
+		try {
+			messageBytes = message.getBytes(CryptoLibrary.CHARSET);
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+
+		DatagramPacket packet = new DatagramPacket(messageBytes,
+				messageBytes.length, this.getConnectionInfo().getServerIp(),
+				this.getConnectionInfo().getServerPort());
+
+		try {
+			this.connectionInfo.getClientSocket().send(packet);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
+	}
+	
+	/* Send a message to given ip and port */
+	public void sendMessage(String message, MessageType messageType,
+			InetAddress destIp, int destPort) {
+		message = messageType.createMessage(message);
+		byte[] messageBytes;
+
+		try {
+			messageBytes = message.getBytes(CryptoLibrary.CHARSET);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		DatagramPacket packet = new DatagramPacket(messageBytes,
+				messageBytes.length, destIp, destPort);
+
+		try {
+			this.connectionInfo.getClientSocket().send(packet);
+		} catch (IOException e) {
+			System.out.println("Error sending packet");
+			e.printStackTrace();
+			return;
+		}
 	}
 }

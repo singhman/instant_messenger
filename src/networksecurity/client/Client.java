@@ -3,7 +3,6 @@ package networksecurity.client;
 import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 
 import networksecurity.common.*;
 import networksecurity.common.ConfigReader.ConfigReaderException;
@@ -38,18 +37,6 @@ public class Client {
 		clientInfo = new ClientInfo(configReader);
 		clientInfo.loginPrompt();
 
-		clientInfo.setClientSocket(new DatagramSocket(clientInfo
-				.getClientPort()));
-
-		String message = MessageType.CLIENT_SERVER_HELLO.createMessage("HELLO");
-		byte[] messageBytes = message.getBytes(CryptoHelper.CHARSET);
-
-		DatagramPacket packet = new DatagramPacket(messageBytes,
-				messageBytes.length, clientInfo.getServerIp(),
-				clientInfo.getServerPort());
-
-		clientInfo.getClientSocket().send(packet);
-
 		run();
 	}
 
@@ -64,11 +51,10 @@ public class Client {
 			
 			while(running){
 				
-				clientInfo.getClientSocket().receive(packet);
-				String received = new String(packet.getData(),0, packet.getLength(),CryptoHelper.CHARSET);
+				clientInfo.getConnectionInfo().getClientSocket().receive(packet);
+				String received = new String(packet.getData(),0, packet.getLength(),CryptoLibrary.CHARSET);
 				
-				MessageHandler handler = new MessageHandler(clientInfo, received, packet.getAddress(), packet.getPort(),
-						clientInfo.getClientSocket());
+				MessageHandler handler = new MessageHandler(clientInfo, received, packet.getAddress(), packet.getPort());
 				(new Thread(handler)).start();
 			}
 		}catch(Exception e){

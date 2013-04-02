@@ -1,34 +1,30 @@
 package networksecurity.client;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import networksecurity.common.CryptoHelper;
+import networksecurity.common.CryptoLibrary;
 import networksecurity.common.MessageType;
 import networksecurity.common.MessageType.UnsupportedMessageTypeException;
 import networksecurity.common.HeaderHandler;
 
 public class MessageHandler implements Runnable {
 	private String message;
-	private DatagramSocket outSocket;
 	private ClientInfo client;
 	private int destinationPort;
 	private InetAddress destinationIp;
 
 	/* Constructor */
 	public MessageHandler(ClientInfo client, String message,
-			InetAddress destinationIp, int destinationPort,
-			DatagramSocket outSocket) {
+			InetAddress destinationIp, int destinationPort) {
 		this.client = client;
 		this.message = message;
 		this.destinationIp = destinationIp;
 		this.destinationPort = destinationPort;
-		this.outSocket = outSocket;
 	}
 
 	public void run() {
@@ -57,7 +53,7 @@ public class MessageHandler implements Runnable {
 				this.authenticationCompleteWithServer(message);
 				break;
 			case SERVER_CLIENT_LIST:
-				this.pickUserForChat(message);
+				this.displayUsersList(message);
 				break;
 			case SERVER_CLIENT_TICKET:
 				this.ticketToUser(message);
@@ -90,33 +86,8 @@ public class MessageHandler implements Runnable {
 	}
 
 	private void sendMessage(String message, MessageType messageType) {
-		sendMessage(message, messageType, this.destinationIp,
+		this.client.sendMessage(message, messageType, this.destinationIp,
 				this.destinationPort);
-	}
-
-	/* Send a message to given ip and port */
-	private void sendMessage(String message, MessageType messageType,
-			InetAddress destIp, int destPort) {
-		message = messageType.createMessage(message);
-		byte[] messageBytes;
-
-		try {
-			messageBytes = message.getBytes(CryptoHelper.CHARSET);
-		} catch (UnsupportedEncodingException e) {
-			e.printStackTrace();
-			return;
-		}
-
-		DatagramPacket packet = new DatagramPacket(messageBytes,
-				messageBytes.length, destIp, destPort);
-
-		try {
-			outSocket.send(packet);
-		} catch (IOException e) {
-			System.out.println("Error sending packet");
-			e.printStackTrace();
-			return;
-		}
 	}
 
 	private void authenticationBegin(String message) {
@@ -126,25 +97,26 @@ public class MessageHandler implements Runnable {
 		final long nonce = 0;
 
 		try {
-			this.client.setdhKeyPair(CryptoHelper.dhGenerateKeyPair());
+			this.client.setdhKeyPair(CryptoLibrary.dhGenerateKeyPair());
 
 			messageStrings[0] = this.client.getUserName();
 			messageStrings[1] = this.client.getPassword();
-			messageStrings[2] = new String(this.client.getdhKeyPair()
-					.getPublic().getEncoded(), CryptoHelper.CHARSET);
+			messageStrings[2] = new String(this.client.getDHKeyPair()
+					.getPublic().getEncoded(), CryptoLibrary.CHARSET);
 			messageStrings[3] = String.valueOf(nonce);
 
-			SecretKey key = CryptoHelper.aesGenerateKey();
+			SecretKey key = CryptoLibrary.aesGenerateKey();
 
 			/*
 			 * Problem: Data must not be longer than 117 bytes to encrypt with
 			 * RSA
 			 */
-			String encryptedMessage = CryptoHelper.aesEncrypt(key,
+			String encryptedMessage = CryptoLibrary.aesEncrypt(key,
 					HeaderHandler.pack(messageStrings));
-			
-			String encryptedKey = CryptoHelper.rsaEncrypt(this.client.getServerPublicKey(),
-					new String(key.getEncoded(),CryptoHelper.CHARSET));
+
+			String encryptedKey = CryptoLibrary.rsaEncrypt(
+					this.client.getServerPublicKey(),
+					new String(key.getEncoded(), CryptoLibrary.CHARSET));
 
 			String[] response = new String[3];
 			response[0] = message;
@@ -160,10 +132,74 @@ public class MessageHandler implements Runnable {
 
 	private void authenticationCompleteWithServer(String message) {
 
+		System.out.println("DEBUG: Message Received length is"
+				+ message.length());
+		ArrayList<String> response = HeaderHandler.unpack(message);
+
+		try {
+			byte[] publicExp = response.get(0).getBytes(CryptoLibrary.CHARSET);
+			this.client.setSecretKey(CryptoLibrary.dhGenerateSecretKey(
+					this.client.getDHKeyPair().getPrivate(), publicExp));
+			byte[] signedResponse = response.get(1).getBytes(
+					CryptoLibrary.CHARSET);
+
+			/*
+			 * Need to verify the decoded string received, not with the encoded
+			 * bytes
+			 */
+			if (CryptoLibrary.verify(this.client.getServerPublicKey(),
+					response.get(0), signedResponse)) {
+				System.out.print("Signature Verified");
+			} else {
+				System.out.println("Signature not verified");
+				return;
+			}
+
+			final ArrayList<String> decodedParams = HeaderHandler
+					.unpack(CryptoLibrary.aesDecrypt(this.client.getSecretKey(),
+							response.get(2)));
+
+			this.client.setUserId(UUID.fromString(decodedParams.get(0)));
+
+			/* Note: need to verify nonce decodedParams.get(1) */
+			long nonce2 = Long.valueOf(decodedParams.get(2));
+
+			String[] responseToServer = new String[2];
+			responseToServer[0] = this.client.getUserId().toString();
+			responseToServer[1] = CryptoLibrary.aesEncrypt(this.client.getSecretKey(),String.valueOf(nonce2));
+			
+			sendMessage(HeaderHandler.pack(responseToServer), MessageType.CLIENT_SERVER_VERIFY);
+			this.client.setIsLoggedIn(true);
+			/*
+			 * Start a thread for handling the commands list , logout, send
+			 * <message>
+			 */
+			(new Thread(new CommandHandler(this.client))).start();
+
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			return;
+		}
 	}
 
-	private void pickUserForChat(String message) {
-
+	private void displayUsersList(String message) {
+		try {
+			message = CryptoLibrary.aesDecrypt(this.client.getSecretKey(), message);
+			final ArrayList<String> params = HeaderHandler.unpack(message);
+			
+			if (Long.valueOf(params.get(1)) == client.getUserListTimestamp() + 1) {
+				client.setUserListTimestamp(0);
+				System.out.println(params.get(0));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			return;
+		}
 	}
 
 	private void ticketToUser(String message) {

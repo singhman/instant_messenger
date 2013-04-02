@@ -20,6 +20,26 @@ public class User {
 	}
 	
 	/* setters */
+	public void setUsername(String username){
+		this.username = username;
+	}
+	
+	public void setUserId(UUID userId){
+		this.userId = userId;
+	}
+	
+	public void setUserPort(int port){
+		this.userPort = port;
+	}
+	
+	public void setUserIp(InetAddress ip){
+		this.userIp = ip;
+	}
+	
+	public void setUserSessionKey(SecretKey key){
+		this.sessionKey = key;
+	}
+	
 	/* getters */
 	public String getUsername(){
 		return this.username;
