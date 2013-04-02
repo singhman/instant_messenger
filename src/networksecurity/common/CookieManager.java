@@ -4,7 +4,7 @@ import java.net.InetAddress;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class CookieGenerator {
+public class CookieManager {
 
 	/*
 	 * The interval in milliseconds for the cookie pruning job to run. Cookies

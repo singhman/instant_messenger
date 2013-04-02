@@ -13,7 +13,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import networksecurity.common.CookieGenerator;
+import networksecurity.common.CookieManager;
 import networksecurity.common.CryptoLibrary;
 import networksecurity.common.CryptoLibrary.DecryptionException;
 import networksecurity.common.CryptoLibrary.EncryptionException;
@@ -21,6 +21,7 @@ import networksecurity.common.CryptoLibrary.KeyCreationException;
 import networksecurity.common.MessageType;
 import networksecurity.common.HeaderHandler;
 import networksecurity.common.MessageType.UnsupportedMessageTypeException;
+import networksecurity.common.TicketManager;
 
 public class MessageHandler implements Runnable {
 
@@ -71,7 +72,7 @@ public class MessageHandler implements Runnable {
 				this.listLoggedInUsers(message);
 				break;
 			case CLIENT_SERVER_TALK_REQUEST:
-				this.ticketToClientRequested(message);
+				this.ticketToUser(message);
 				break;
 			case CLIENT_SERVER_LOGOUT:
 				this.logoutClient(message);
@@ -107,8 +108,8 @@ public class MessageHandler implements Runnable {
 
 	private void helloResponse(String message) {
 		try {
-			this.sendMessage(String.valueOf(CookieGenerator
-					.generateCookie(this.clientIp)),
+			this.sendMessage(
+					String.valueOf(CookieManager.generateCookie(this.clientIp)),
 					MessageType.SERVER_CLIENT_COOKIE);
 		} catch (Exception e) {
 			System.out.println("Exception:" + e);
@@ -118,7 +119,7 @@ public class MessageHandler implements Runnable {
 	private void authenticateClient(String message) {
 		ArrayList<String> response = HeaderHandler.unpack(message);
 
-		if (CookieGenerator.verifyCookie(this.clientIp, response.get(0))) {
+		if (CookieManager.verifyCookie(this.clientIp, response.get(0))) {
 			System.out.println("DEBUG: Cookie matches");
 		} else {
 			System.out.print("DEBUG: Wrong Coookie");
@@ -155,12 +156,12 @@ public class MessageHandler implements Runnable {
 
 		final String username = decryptedList.get(0);
 
-		if (!server.isRegistered(username)) {
+		if (!this.server.isRegistered(username)) {
 			System.out.println("User not resgistered");
 			return;
 		}
 
-		final User user = server.getUser(username);
+		final User user = this.server.getUser(username);
 
 		if (user == null) {
 			System.out.println("Unknown username: " + decryptedList.get(0));
@@ -276,14 +277,19 @@ public class MessageHandler implements Runnable {
 	}
 
 	private void listLoggedInUsers(String message) {
-		final ArrayList<String> params = HeaderHandler.unpack(message);
-		User user = this.server.getOnlineUserByUUID(UUID.fromString(params
+		final ArrayList<String> listRequest = HeaderHandler.unpack(message);
+		User user = this.server.getOnlineUserByUUID(UUID.fromString(listRequest
 				.get(0)));
+
+		if (user == null) {
+			System.out.println("User doesn't exist in online users");
+			return;
+		}
 
 		String decryptedMessage;
 		try {
 			decryptedMessage = CryptoLibrary.aesDecrypt(user.getSessionKey(),
-					params.get(1));
+					listRequest.get(1));
 		} catch (DecryptionException e) {
 			System.out.println("Error decrypting user listing string");
 			e.printStackTrace();
@@ -318,8 +324,67 @@ public class MessageHandler implements Runnable {
 		}
 	}
 
-	private void ticketToClientRequested(String message) {
+	private void ticketToUser(String message) {
+		final ArrayList<String> talkRequest = HeaderHandler.unpack(message);
+		User user = this.server.getOnlineUserByUUID(UUID.fromString(talkRequest
+				.get(0)));
 
+		if (user == null) {
+			System.out.println("User doesn't exist in online users");
+			return;
+		}
+
+		String decryptedMessage;
+		try {
+			decryptedMessage = CryptoLibrary.aesDecrypt(user.getSessionKey(),
+					talkRequest.get(1));
+		} catch (DecryptionException e) {
+			System.out.println("Error decrypting user talk request");
+			e.printStackTrace();
+			return;
+		}
+
+		final ArrayList<String> decryptedParams = HeaderHandler
+				.unpack(decryptedMessage);
+		final Long timestamp = Long.valueOf(decryptedParams.get(2));
+		final Long currentTime = System.currentTimeMillis();
+
+		if (Math.abs(timestamp - currentTime) >= TIMESTAMP_LIMIT) {
+			System.out.println("Expired talk request timestamp");
+			return;
+		}
+
+		try {
+			User to = this.server.getOnlineUser(decryptedParams.get(1));
+
+			if (to == null) {
+				System.out.println(decryptedParams.get(0) + "is not online");
+			}
+
+			SecretKey key = null;
+			try {
+				key = CryptoLibrary.aesGenerateKey();
+			} catch (KeyCreationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+			String[] talkResponse = new String[6];
+			talkResponse[0] = to.getUsername();
+			talkResponse[1] = to.getUserIp().getHostAddress();
+			talkResponse[2] = String.valueOf(to.getUserPort());
+			talkResponse[3] = new String(key.getEncoded(),
+					CryptoLibrary.CHARSET);
+			talkResponse[4] = CryptoLibrary.aesEncrypt(to.getSessionKey(), HeaderHandler.pack(TicketManager.getTicket(user, to.getUsername(), key)));
+			talkResponse[5] = String.valueOf(timestamp + 1);
+			String messageToSend = CryptoLibrary.aesEncrypt(user.getSessionKey(), HeaderHandler.pack(talkResponse));
+			sendMessage(messageToSend, MessageType.SERVER_CLIENT_TICKET);
+
+		} catch (Exception e) {
+			System.out.println("Exception:" + e.toString());
+			e.printStackTrace();
+			return;
+		}
 	}
 
 	private void logoutClient(String message) {

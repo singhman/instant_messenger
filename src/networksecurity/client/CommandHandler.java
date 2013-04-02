@@ -44,13 +44,13 @@ public class CommandHandler implements Runnable {
 				continue;
 
 			/* split command into arguments */
-			String[] argsStrings = command.split(" ");
+			String[] argsStrings = command.split(" ", 3);
 			int length = argsStrings.length;
 
 			if (length == 1) {
 				if (argsStrings[0].toUpperCase().equals(
 						CommandType.LIST.toString())) {
-					listOnlineUsers();
+					this.listOnlineUsers();
 
 				} else if (argsStrings[0].toUpperCase().equals(
 						CommandType.LOGOUT.toString())) {
@@ -58,7 +58,8 @@ public class CommandHandler implements Runnable {
 				} else if (argsStrings[0].toUpperCase().equals(
 						CommandType.SEND.toString())) {
 					System.out
-							.print("Please don't waste resources by sending empty message");
+							.print("Please specify username and message");
+					this.usage();
 				} else {
 					this.usage();
 				}
@@ -67,7 +68,12 @@ public class CommandHandler implements Runnable {
 			else if (length > 1) {
 				if (argsStrings[0].toUpperCase().equals(
 						CommandType.SEND.toString())) {
-
+					// Verify format of send command
+					if (argsStrings.length < 3) { 
+						System.out.println("Invalid send command");
+					} else {
+						this.sendMessage(argsStrings[1], argsStrings[2]);
+					}
 				}
 			}
 		}
@@ -105,9 +111,9 @@ public class CommandHandler implements Runnable {
 			sendMessageToServer(HeaderHandler.pack(message),
 					MessageType.CLIENT_SERVER_LIST);
 
-		} catch (EncryptionException e1) {
+		} catch (EncryptionException e) {
 			System.out.println("Error encryting list command");
-			e1.printStackTrace();
+			e.printStackTrace();
 		}
 	}
 
@@ -121,5 +127,33 @@ public class CommandHandler implements Runnable {
 		this.client.sendMessage(message, messageType, this.client
 				.getConnectionInfo().getServerIp(), this.client
 				.getConnectionInfo().getServerPort());
+	}
+	
+	private void sendMessage(String peername, String message){
+		/* if already exists in peers then send message otherwise setup the key */
+		if(this.client.isPeerExist(peername)){
+			
+		}
+		else{
+			String[] talkRequest = new String[2];
+			talkRequest[0] = String.valueOf(this.client.getUserId());
+			
+			long currentTime = System.currentTimeMillis();
+			this.client.setUserListTimestamp(currentTime);
+			
+			String[] encryptedMessage = new String[3];
+			encryptedMessage[0] = "TALK";
+			encryptedMessage[1] = peername;
+			encryptedMessage[2] = String.valueOf(currentTime);
+			
+			try{
+				talkRequest[1] = CryptoLibrary.aesEncrypt(this.client.getSecretKey(),
+						HeaderHandler.pack(encryptedMessage));
+				sendMessageToServer(HeaderHandler.pack(talkRequest), MessageType.CLIENT_SERVER_TALK_REQUEST);
+			}catch (EncryptionException e) {
+				System.out.println("Error encryting talk csommand");
+				e.printStackTrace();
+			}
+		}
 	}
 }

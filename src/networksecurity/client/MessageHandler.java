@@ -2,13 +2,17 @@ package networksecurity.client;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
 import networksecurity.common.CryptoLibrary;
+import networksecurity.common.CryptoLibrary.EncryptionException;
+import networksecurity.common.CryptoLibrary.KeyCreationException;
 import networksecurity.common.MessageType;
+import networksecurity.common.CryptoLibrary.DecryptionException;
 import networksecurity.common.MessageType.UnsupportedMessageTypeException;
 import networksecurity.common.HeaderHandler;
 
@@ -192,18 +196,89 @@ public class MessageHandler implements Runnable {
 			message = CryptoLibrary.aesDecrypt(this.client.getSecretKey(), message);
 			final ArrayList<String> params = HeaderHandler.unpack(message);
 			
-			if (Long.valueOf(params.get(1)) == client.getUserListTimestamp() + 1) {
-				client.setUserListTimestamp(0);
+			if (Long.valueOf(params.get(1)).equals(this.client.getUserListTimestamp() + 1)) {
+				this.client.setUserListTimestamp(0);
 				System.out.println(params.get(0));
 			}
-		} catch (Exception e) {
+		} catch (DecryptionException e) {
 			e.printStackTrace();
 			return;
 		}
 	}
 
 	private void ticketToUser(String message) {
-
+		PeerInfo peerInfo = null;
+		String ticketToPeer = null;
+		
+		try{
+			message = CryptoLibrary.aesDecrypt(this.client.getSecretKey(), message);
+			final ArrayList<String> talkResponse = HeaderHandler.unpack(message);
+			
+			String peer = talkResponse.get(0);
+			InetAddress peerIp = InetAddress.getByName(talkResponse.get(1));
+			int peerPort = Integer.valueOf(talkResponse.get(2));
+			SecretKey tempSessionKey = null;
+			try {
+				tempSessionKey = CryptoLibrary.aesCreateKey(talkResponse.get(3).getBytes(CryptoLibrary.CHARSET));
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (KeyCreationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			peerInfo = new PeerInfo(peer, peerIp, peerPort, tempSessionKey);
+			this.client.peers.put(peerInfo.getPeerUsername(), peerInfo);
+			
+			ticketToPeer = talkResponse.get(4);
+			
+			if (Long.valueOf(talkResponse.get(5)).equals(this.client.getUserListTimestamp() + 1)) {
+				this.client.setUserListTimestamp(0);
+			}
+			else{
+				System.out.println("Ticket Response received from server is not authentic");
+				return;
+			}
+			
+		} catch(DecryptionException e){
+			e.printStackTrace();
+			return;
+		}catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		try {
+			this.client.setdhKeyPair(CryptoLibrary.dhGenerateKeyPair());
+		} catch (KeyCreationException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		String[] responseToPeer = new String[2];
+		responseToPeer[0] = ticketToPeer;
+		String[] helloMessage = new String[5];
+		try{
+			helloMessage[0] = "HELLO";
+			helloMessage[1] = this.client.getUserName();
+			helloMessage[2] = peerInfo.getPeerUsername();
+			helloMessage[3] = new String(this.client.getDHKeyPair()
+					.getPublic().getEncoded(), CryptoLibrary.CHARSET);
+			helloMessage[4] = "0";
+		} catch(UnsupportedEncodingException e){
+			e.printStackTrace();
+			return;
+		}
+		
+		try {
+			responseToPeer[1] = CryptoLibrary.aesEncrypt(peerInfo.getTempSessionKey(), HeaderHandler.pack(helloMessage));
+		} catch (EncryptionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		sendMessage(HeaderHandler.pack(responseToPeer), MessageType.CLIENT_CLIENT_HELLO);
 	}
 
 	private void p2pCommunicationBegin(String message) {

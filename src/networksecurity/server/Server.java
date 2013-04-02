@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.security.PrivateKey;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,15 +27,14 @@ public class Server {
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		
+
 		try {
-			System.out.println("DEBUG:" + new File(".")
-			.getCanonicalPath());
+			System.out.println("DEBUG:" + new File(".").getCanonicalPath());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		String configFile = "src/networksecurity/resources/server.cfg";
 		if (args.length == 1) {
 			configFile = args[0];
@@ -62,13 +60,15 @@ public class Server {
 	}
 
 	public void initializeServerInfo(ServerConfigReader serverConfig) {
-		try{
-			serverInfo = new ServerInfo(CryptoLibrary.readPrivateKey(serverConfig.privateKeyLocation), serverConfig.port);
-		}
-		catch (Exception e) {
+		try {
+			serverInfo = new ServerInfo(
+					CryptoLibrary
+							.readPrivateKey(serverConfig.privateKeyLocation),
+					serverConfig.port);
+		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
-		
+
 		for (final User user : serverConfig.users) {
 			registeredUsers.put(user.getUsername(), user);
 		}
@@ -83,7 +83,8 @@ public class Server {
 
 		// Start Listening
 		try {
-			DatagramSocket socket = new DatagramSocket(this.serverInfo.getServerPort());
+			DatagramSocket socket = new DatagramSocket(
+					this.serverInfo.getServerPort());
 			DatagramPacket packet = new DatagramPacket(buf, buf.length);
 
 			System.out.println("Server running...");
@@ -103,76 +104,88 @@ public class Server {
 		}
 	}
 
-	public User getUser(String userName){
+	public User getUser(String userName) {
 		return this.registeredUsers.get(userName);
 	}
-	
-	public void loginUser(UUID userId, User user){
-		this.onlineUsers.put(userId,user); 
+
+	public void loginUser(UUID userId, User user) {
+		this.onlineUsers.put(userId, user);
 	}
-	
-	public void logoutUser(UUID userId){
+
+	public void logoutUser(UUID userId) {
 		this.onlineUsers.remove(userId);
 	}
-	
-	public boolean isOnline(UUID userId){
+
+	public boolean isOnline(UUID userId) {
 		return this.onlineUsers.containsKey(userId);
 	}
-	
-	public boolean isRegistered(String userName){
+
+	public boolean isRegistered(String userName) {
 		return this.registeredUsers.containsKey(userName);
 	}
-	
-	public boolean isAlreadyOnline(String username){
+
+	public boolean isAlreadyOnline(String username) {
 		for (User user : this.onlineUsers.values()) {
-			if(user.getUsername().equals(username)){
+			if (user.getUsername().equals(username)) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
-	public boolean isAlreadyOnlineByPort(int port){
+
+	public boolean isAlreadyOnlineByPort(int port) {
 		for (User user : onlineUsers.values()) {
-			if(user.getUserPort() == port){
+			if (user.getUserPort() == port) {
 				return true;
 			}
 		}
 		return false;
 	}
-	
-	public User getRegisteredUserByUUID(UUID userId){
-		for (User user : registeredUsers.values()) {
-			if(user.getUserId().equals(userId)){
-				return user;
+
+	public User getRegisteredUserByUUID(UUID userId) {
+		for (User user : this.registeredUsers.values()) {
+			if (user.getUserId() != null) {
+				if (user.getUserId().equals(userId)) {
+					return user;
+				}
 			}
 		}
 		return null;
 	}
 	
-	public User getOnlineUserByUUID(UUID userId){
+	public User getOnlineUser(String userName){
+		for (User user : this.onlineUsers.values()) {
+			if (user.getUsername().equals(userName)) {
+				return user;
+			}
+		}
+		
+		return null;
+	}
+
+	public User getOnlineUserByUUID(UUID userId) {
 		return this.onlineUsers.get(userId);
 	}
-	
-	public String getUserList(){
-		final StringBuilder builder = new StringBuilder();		
+
+	public String getUserList() {
+		final StringBuilder builder = new StringBuilder();
 		final ArrayList<String> usernames = new ArrayList<String>();
-		
+
 		for (User user : onlineUsers.values()) {
 			usernames.add(user.getUsername());
 		}
-		
+
 		Collections.sort(usernames);
 		final Iterator<String> usernamesIterator = usernames.iterator();
-		
-		while(usernamesIterator.hasNext()) {
+
+		while (usernamesIterator.hasNext()) {
 			builder.append(usernamesIterator.next());
-			
+
 			if (usernamesIterator.hasNext()) {
 				builder.append(",");
 			}
 		}
-		
+
 		return builder.toString();
 	}
 }

@@ -8,9 +8,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
-import java.security.Key;
 import java.security.KeyPair;
 import java.security.PublicKey;
+import java.util.HashMap;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -26,14 +26,18 @@ public class ClientInfo {
 	private UUID userId;
 	private long userListTimeStamp;
 	private ConnectionInfo connectionInfo;
-	private Key clientServerKey;
-	private Key clientClientKey;
 	private PublicKey serverPublicKey;
 	private KeyPair dhKeyPair;
 	private SecretKey secretKey;
 	private boolean isLoogedIn = false;
+	
+	/* Peers are those with whom current client had
+	 * already set up a key 
+	 */
+	public HashMap<String,PeerInfo> peers = null;
 
 	public ClientInfo(ClientConfigReader config) {
+		this.peers = new HashMap<String, PeerInfo>();
 		this.connectionInfo = new ConnectionInfo(config.getPort(), config.getServerAddress(), config.getServerPort());
 		this.setServerPublicKey(getServerPublicKeyFromFile(config));
 	}
@@ -62,14 +66,6 @@ public class ClientInfo {
 
 	public void setUserListTimestamp(long timestamp){
 		this.userListTimeStamp = timestamp;
-	}
-	
-	public void setClientServerKey(Key clientServerKey) {
-		this.clientServerKey = clientServerKey;
-	}
-
-	public void setClientClientKey(Key clientclientKey) {
-		this.clientClientKey = clientclientKey;
 	}
 
 	public void setServerPublicKey(PublicKey key) {
@@ -107,14 +103,6 @@ public class ClientInfo {
 	
 	public ConnectionInfo getConnectionInfo(){
 		return this.connectionInfo;
-	}
-
-	public Key getClientServerKey() {
-		return this.clientServerKey;
-	}
-
-	public Key getClientClientKey() {
-		return this.clientClientKey;
 	}
 
 	public PublicKey getServerPublicKey() {
@@ -210,5 +198,13 @@ public class ClientInfo {
 			e.printStackTrace();
 			return;
 		}
+	}
+	
+	public boolean isPeerExist(String username){
+		return this.peers.containsKey(username);
+	}
+	
+	public PeerInfo getPeer(String username){
+		return this.peers.get(username);
 	}
 }
