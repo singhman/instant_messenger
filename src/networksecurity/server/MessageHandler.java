@@ -76,7 +76,7 @@ public class MessageHandler implements Runnable {
 				this.ticketToUser(message);
 				break;
 			case CLIENT_SERVER_LOGOUT:
-				this.logoutClient(message);
+				this.logoutUser(message);
 				break;
 			default:
 				break;
@@ -363,7 +363,8 @@ public class MessageHandler implements Runnable {
 			User to = this.server.getOnlineUser(decryptedParams.get(1));
 
 			if (to == null) {
-				System.out.println(decryptedParams.get(0) + "is not online");
+				System.out.println(decryptedParams.get(1) + " is not online");
+				return;
 			}
 
 			SecretKey key = null;
@@ -393,7 +394,45 @@ public class MessageHandler implements Runnable {
 		}
 	}
 
-	private void logoutClient(String message) {
+	private void logoutUser(String message) {
+		final ArrayList<String> ResponseReceived = HeaderHandler.unpack(message);
+		UUID userId = UUID.fromString(ResponseReceived.get(0));
+		User user = this.server.getOnlineUserByUUID(userId);
+		if(user == null){
+			System.out.println("User is not online");
+			return;
+		}
+		
+		String decryptedMessage = null;
+		try {
+			decryptedMessage = CryptoLibrary.aesDecrypt(user.getSessionKey(), ResponseReceived.get(1));
+		} catch (DecryptionException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		final ArrayList<String> logoutParams = HeaderHandler.unpack(decryptedMessage);
+		final Long timestamp = Long.valueOf(logoutParams.get(1));
+		final Long currentTime = System.currentTimeMillis();
 
+		if (Math.abs(timestamp - currentTime) >= TIMESTAMP_LIMIT) {
+			System.out.println("Expired talk request timestamp");
+			return;
+		} 
+		
+		String logoutResponse = String.valueOf(timestamp + 1);
+		String encryptedResponse = null;
+		try {
+			encryptedResponse = CryptoLibrary.aesEncrypt(user.getSessionKey(), logoutResponse);
+		} catch (EncryptionException e) {
+			// TODO: handle exception
+			e.printStackTrace();
+			return;
+		}
+		
+		sendMessage(encryptedResponse, MessageType.SERVER_CLIENT_LOGOUT);
+		
+		this.server.destroySessionKey(userId);
+		this.server.logoutUser(userId);
 	}
 }

@@ -3,7 +3,6 @@ package networksecurity.common;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.AlgorithmParameterGenerator;
@@ -450,13 +449,6 @@ public class CryptoLibrary {
 	 * @throws Exception Thrown for all errors.
 	 */
 	public static PrivateKey readPrivateKey(String filename) throws Exception {
-		try {
-			System.out.println(new File(".").getCanonicalPath());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 		File f = new File(filename);
 		FileInputStream fis = new FileInputStream(f);
 		DataInputStream dis = new DataInputStream(fis);
@@ -468,7 +460,7 @@ public class CryptoLibrary {
 
 		PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
 		KeyFactory kf = KeyFactory.getInstance(RSA_CIPHER);
-		System.out.println("RSA Private key loaded from " + f.getPath());
+		//System.out.println("RSA Private key loaded from " + f.getPath());
 		return kf.generatePrivate(spec);
 	}
 
@@ -494,7 +486,7 @@ public class CryptoLibrary {
 
 		X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
 		KeyFactory kf = KeyFactory.getInstance(RSA_CIPHER);
-		System.out.println("RSA Public key loaded from " + f.getPath());
+		//System.out.println("RSA Public key loaded from " + f.getPath());
 		return kf.generatePublic(spec);
 	}
 

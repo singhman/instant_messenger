@@ -28,14 +28,6 @@ public class Server {
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-
-		try {
-			System.out.println("DEBUG:" + new File(".").getCanonicalPath());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
 		String configFile = "src/networksecurity/resources/server.cfg";
 		if (args.length == 1) {
 			configFile = args[0];
@@ -81,10 +73,11 @@ public class Server {
 	private void run() {
 		byte[] buf = new byte[2048];
 		boolean running = true;
-
+		DatagramSocket socket = null;
+		
 		// Start Listening
 		try {
-			DatagramSocket socket = new DatagramSocket(
+			socket = new DatagramSocket(
 					this.serverInfo.getServerPort());
 			DatagramPacket packet = new DatagramPacket(buf, buf.length);
 
@@ -102,6 +95,9 @@ public class Server {
 
 		} catch (Exception e) {
 			System.out.print("Exception:" + e.toString());
+		} finally {
+			if(!socket.isClosed())
+			socket.close();
 		}
 	}
 
@@ -122,6 +118,14 @@ public class Server {
 	public void logoutUser(UUID userId) {
 		if(this.onlineUsers.containsKey(userId)){
 			this.onlineUsers.remove(userId);
+		}
+	}
+	
+	public void destroySessionKey(UUID userId){
+		User user = this.onlineUsers.get(userId);
+		if(user != null){
+			user.destroySessionKey();
+			return;
 		}
 	}
 

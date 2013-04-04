@@ -64,4 +64,8 @@ public class User {
 	public SecretKey getSessionKey(){
 		return this.sessionKey;
 	}
+	
+	public void destroySessionKey(){
+		this.sessionKey = null;
+	}
 }

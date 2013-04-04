@@ -56,5 +56,4 @@ public class ConnectionInfo {
 	public int getServerPort(){
 		return this.serverPort;
 	}
-
 }
