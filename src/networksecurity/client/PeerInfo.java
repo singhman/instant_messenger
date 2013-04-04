@@ -13,6 +13,7 @@ public class PeerInfo {
 	private int peerPort;
 	private UUID peerUserId;
 	private SecretKey secretKey;
+	private String pendingMessage;
 	
 	/* Constructor */
 	public PeerInfo(String username, InetAddress peerIp, int peerPort,UUID userId, SecretKey tempKey){
@@ -49,5 +50,9 @@ public class PeerInfo {
 	
 	public SecretKey getSecretKey(){
 		return this.secretKey;
+	}
+	
+	public String getPendingMessage(){
+		return this.pendingMessage;
 	}
 }

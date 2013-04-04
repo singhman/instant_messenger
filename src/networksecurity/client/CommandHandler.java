@@ -124,54 +124,13 @@ public class CommandHandler implements Runnable {
 				.getConnectionInfo().getServerPort());
 	}
 
-	private void sendMessageToClient(String message, MessageType messageType,
-			InetAddress destIp, int destPort) {
-		this.client.sendMessage(message, messageType, destIp, destPort);
-	}
-
 	private void sendMessage(String peername, String message) {
 		if(peername.equals(this.client.getUserName())){
 			System.out.println("Don't send message to yourself");
 			return;
 		}
 		if (this.client.isPeerExist(peername)) {
-			PeerInfo peerInfo = this.client.getPeerByUserName(peername);
-
-			if (peerInfo == null) {
-				System.out.println(peername + "is not online anymore");
-				return;
-			}
-			String[] messageParams = new String[2];
-			messageParams[0] = this.client.getUserId().toString();
-			
-			String[] encryptedMessageParams = new String[]{message, String.valueOf(System.currentTimeMillis())};
-			String encryptedMessage = null;
-			try {
-				encryptedMessage = CryptoLibrary.aesEncrypt(
-					peerInfo.getSecretKey(),
-					HeaderHandler.pack(encryptedMessageParams)
-				);
-			} catch (EncryptionException e) {
-				System.out.println("Error encrypting message");
-				e.printStackTrace();
-				return;
-			}
-			
-			String hMac;
-			try {
-				hMac = CryptoLibrary.hmacCreate(
-					peerInfo.getSecretKey(), encryptedMessage
-				);
-			} catch (HmacException e) {
-				System.out.println("Error generating hmac for message");
-				e.printStackTrace();
-				return;
-			}
-			
-			messageParams[1] = hMac;
-			
-			sendMessageToClient(HeaderHandler.pack(messageParams), MessageType.CLIENT_CLIENT_MESSAGE, peerInfo.getPeerIp(), peerInfo.getPeerPort());
-
+			this.client.sendMessage(peername, message);
 		} else {
 			String[] talkRequest = new String[2];
 			talkRequest[0] = String.valueOf(this.client.getUserId());
@@ -194,6 +153,8 @@ public class CommandHandler implements Runnable {
 				System.out.println("Error encryting talk command");
 				e.printStackTrace();
 			}
+			
+			this.client.pendingMessages.put(peername, message);
 		}
 	}
 }

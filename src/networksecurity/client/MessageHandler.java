@@ -24,6 +24,7 @@ import networksecurity.common.HeaderHandler;
 public class MessageHandler implements Runnable {
 
 	private final static long TICKET_EXPIRATION = 5 * 60 * 1000;
+	private final static long MESSAGE_EXPIRATION = 1 * 60 * 1000;
 
 	private String message;
 	private ClientInfo client;
@@ -482,6 +483,7 @@ public class MessageHandler implements Runnable {
 
 		sendMessage(HeaderHandler.pack(response),
 				MessageType.CLIENT_CLIENT_MUTH_AUTH);
+		this.client.sendMessage(peerInfo.getPeerUsername(), this.client.pendingMessages.get(peerInfo.getPeerUsername()));
 	}
 
 	private void authenticationCompleteWithClient(String message) {
@@ -525,6 +527,15 @@ public class MessageHandler implements Runnable {
 		}
 		
 		final ArrayList<String> decryptedMessage = HeaderHandler.unpack(content);
+		
+		long timestamp = Long.valueOf(decryptedMessage.get(1));
+		long currentTime = System.currentTimeMillis();
+		
+		if(Math.abs(timestamp - currentTime) >= MESSAGE_EXPIRATION){
+			System.out.println("Message Expired");
+			return;
+		}
+		
 		System.out.println(decryptedMessage.get(0));
 	}
 
