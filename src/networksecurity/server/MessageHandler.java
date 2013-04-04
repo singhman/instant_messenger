@@ -119,9 +119,7 @@ public class MessageHandler implements Runnable {
 	private void authenticateClient(String message) {
 		ArrayList<String> response = HeaderHandler.unpack(message);
 
-		if (CookieManager.verifyCookie(this.clientIp, response.get(0))) {
-			System.out.println("DEBUG: Cookie matches");
-		} else {
+		if (!CookieManager.verifyCookie(this.clientIp, response.get(0))) {
 			System.out.print("DEBUG: Wrong Coookie");
 			return;
 		}
@@ -152,12 +150,16 @@ public class MessageHandler implements Runnable {
 		final ArrayList<String> decryptedList = HeaderHandler
 				.unpack(authRequest);
 		final String nonce1 = decryptedList.get(3);
-		System.out.println("Nonce:" + Long.valueOf(nonce1).toString());
 
 		final String username = decryptedList.get(0);
 
 		if (!this.server.isRegistered(username)) {
 			System.out.println("User not resgistered");
+			return;
+		}
+		
+		if(this.server.isOnline(username)){
+			System.out.println("User already online");
 			return;
 		}
 
@@ -369,7 +371,7 @@ public class MessageHandler implements Runnable {
 				e.printStackTrace();
 			}
 
-			String[] talkResponse = new String[6];
+			String[] talkResponse = new String[7];
 			talkResponse[0] = to.getUsername();
 			talkResponse[1] = to.getUserIp().getHostAddress();
 			talkResponse[2] = String.valueOf(to.getUserPort());
@@ -377,6 +379,7 @@ public class MessageHandler implements Runnable {
 					CryptoLibrary.CHARSET);
 			talkResponse[4] = CryptoLibrary.aesEncrypt(to.getSessionKey(), HeaderHandler.pack(TicketManager.getTicket(user, to.getUsername(), key)));
 			talkResponse[5] = String.valueOf(timestamp + 1);
+			talkResponse[6] = user.getUserId().toString();
 			String messageToSend = CryptoLibrary.aesEncrypt(user.getSessionKey(), HeaderHandler.pack(talkResponse));
 			sendMessage(messageToSend, MessageType.SERVER_CLIENT_TICKET);
 

@@ -151,7 +151,7 @@ public class CommandHandler implements Runnable {
 						HeaderHandler.pack(encryptedMessage));
 				sendMessageToServer(HeaderHandler.pack(talkRequest), MessageType.CLIENT_SERVER_TALK_REQUEST);
 			}catch (EncryptionException e) {
-				System.out.println("Error encryting talk csommand");
+				System.out.println("Error encryting talk command");
 				e.printStackTrace();
 			}
 		}

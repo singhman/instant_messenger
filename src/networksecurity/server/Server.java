@@ -124,7 +124,7 @@ public class Server {
 		return this.registeredUsers.containsKey(userName);
 	}
 
-	public boolean isAlreadyOnline(String username) {
+	public boolean isOnline(String username) {
 		for (User user : this.onlineUsers.values()) {
 			if (user.getUsername().equals(username)) {
 				return true;

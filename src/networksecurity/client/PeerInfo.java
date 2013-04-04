@@ -1,6 +1,7 @@
 package networksecurity.client;
 
 import java.net.InetAddress;
+import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
@@ -10,14 +11,15 @@ public class PeerInfo {
 	private SecretKey tempSessionKey;
 	private InetAddress peerIp;
 	private int peerPort;
+	private UUID peerUserId;
 	private SecretKey secretKey;
 	
 	/* Constructor */
-	public PeerInfo(String username, InetAddress peerIp, int peerPort, SecretKey key){
+	public PeerInfo(String username, InetAddress peerIp, int peerPort,UUID userId, SecretKey tempKey){
 		this.username = username;
 		this.peerIp = peerIp;
 		this.peerPort = peerPort;
-		this.tempSessionKey = key;
+		this.tempSessionKey = tempKey;
 	}
 	
 	public void setSecretKey(SecretKey key){
@@ -39,6 +41,10 @@ public class PeerInfo {
 	
 	public int getPeerPort(){
 		return this.peerPort;
+	}
+	
+	public UUID getPeerUserId(){
+		return this.peerUserId;
 	}
 	
 	public SecretKey getSecretKey(){

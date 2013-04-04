@@ -18,6 +18,7 @@ import javax.crypto.SecretKey;
 import networksecurity.common.ClientConfigReader;
 import networksecurity.common.CryptoLibrary;
 import networksecurity.common.MessageType;
+import networksecurity.server.User;
 
 public class ClientInfo {
 
@@ -34,10 +35,10 @@ public class ClientInfo {
 	/* Peers are those with whom current client had
 	 * already set up a key 
 	 */
-	public HashMap<String,PeerInfo> peers = null;
+	public HashMap<UUID,PeerInfo> peers = null;
 
 	public ClientInfo(ClientConfigReader config) {
-		this.peers = new HashMap<String, PeerInfo>();
+		this.peers = new HashMap<UUID, PeerInfo>();
 		this.connectionInfo = new ConnectionInfo(config.getPort(), config.getServerAddress(), config.getServerPort());
 		this.setServerPublicKey(getServerPublicKeyFromFile(config));
 	}
@@ -201,10 +202,15 @@ public class ClientInfo {
 	}
 	
 	public boolean isPeerExist(String username){
-		return this.peers.containsKey(username);
+		for (PeerInfo peer: peers.values()) {
+			if (peer.getPeerUsername().equals(username)) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
-	public PeerInfo getPeer(String username){
-		return this.peers.get(username);
+	public PeerInfo getPeer(UUID userId){
+		return this.peers.get(userId);
 	}
 }
