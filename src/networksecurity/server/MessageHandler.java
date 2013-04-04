@@ -15,6 +15,7 @@ import javax.crypto.SecretKey;
 
 import networksecurity.common.CookieManager;
 import networksecurity.common.CryptoLibrary;
+import networksecurity.common.NonceManager;
 import networksecurity.common.CryptoLibrary.DecryptionException;
 import networksecurity.common.CryptoLibrary.EncryptionException;
 import networksecurity.common.CryptoLibrary.KeyCreationException;
@@ -149,7 +150,7 @@ public class MessageHandler implements Runnable {
 
 		final ArrayList<String> decryptedList = HeaderHandler
 				.unpack(authRequest);
-		final String nonce1 = decryptedList.get(3);
+		final String clientNonce = decryptedList.get(3);
 
 		final String username = decryptedList.get(0);
 
@@ -178,8 +179,8 @@ public class MessageHandler implements Runnable {
 			return;
 		}
 
-		if (this.server.isAlreadyOnlineByPort(clientPort)) {
-			System.out.println("User already online: Port is same");
+		if (this.server.isAlreadyOnline(clientPort, clientIp)) {
+			System.out.println("Client already online: Same port and IP address");
 		}
 
 		PublicKey publicKey = null;
@@ -200,8 +201,6 @@ public class MessageHandler implements Runnable {
 			return;
 		}
 
-		/* Note: Need to check if user already exist */
-
 		final UUID userId = UUID.randomUUID();
 		user.setUserId(userId);
 		String encryptedResponse = null;
@@ -209,10 +208,10 @@ public class MessageHandler implements Runnable {
 		try {
 
 			final String[] encryptedResponseParams = new String[3];
-			final long nonce2 = 1;
+			final long serverNonce = NonceManager.generateNonce();
 			encryptedResponseParams[0] = userId.toString();
-			encryptedResponseParams[1] = nonce1;
-			encryptedResponseParams[2] = String.valueOf(nonce2);
+			encryptedResponseParams[1] = clientNonce;
+			encryptedResponseParams[2] = String.valueOf(serverNonce);
 			encryptedResponse = CryptoLibrary.aesEncrypt(secretKey,
 					HeaderHandler.pack(encryptedResponseParams));
 
@@ -264,8 +263,12 @@ public class MessageHandler implements Runnable {
 		try {
 			long nonce = Long.valueOf(CryptoLibrary.aesDecrypt(
 					user.getSessionKey(), responseReceived.get(1)));
-			/* Note: Comapare nonces */
-			System.out.println("Authentication Complete");
+			if(NonceManager.verifyNonce(nonce)){
+				System.out.println("Authentication Complete");
+			} else{
+				System.out.println("Authentication Incomplete: Wrong Nonce");
+				return;
+			}
 
 		} catch (NumberFormatException e) {
 			// TODO Auto-generated catch block
@@ -328,17 +331,17 @@ public class MessageHandler implements Runnable {
 
 	private void ticketToUser(String message) {
 		final ArrayList<String> talkRequest = HeaderHandler.unpack(message);
-		User user = this.server.getOnlineUserByUUID(UUID.fromString(talkRequest
+		User from = this.server.getOnlineUserByUUID(UUID.fromString(talkRequest
 				.get(0)));
 
-		if (user == null) {
+		if (from == null) {
 			System.out.println("User doesn't exist in online users");
 			return;
 		}
 
 		String decryptedMessage;
 		try {
-			decryptedMessage = CryptoLibrary.aesDecrypt(user.getSessionKey(),
+			decryptedMessage = CryptoLibrary.aesDecrypt(from.getSessionKey(),
 					talkRequest.get(1));
 		} catch (DecryptionException e) {
 			System.out.println("Error decrypting user talk request");
@@ -377,10 +380,10 @@ public class MessageHandler implements Runnable {
 			talkResponse[2] = String.valueOf(to.getUserPort());
 			talkResponse[3] = new String(key.getEncoded(),
 					CryptoLibrary.CHARSET);
-			talkResponse[4] = CryptoLibrary.aesEncrypt(to.getSessionKey(), HeaderHandler.pack(TicketManager.getTicket(user, to.getUsername(), key)));
+			talkResponse[4] = CryptoLibrary.aesEncrypt(to.getSessionKey(), HeaderHandler.pack(TicketManager.getTicket(from, to.getUsername(), key)));
 			talkResponse[5] = String.valueOf(timestamp + 1);
-			talkResponse[6] = user.getUserId().toString();
-			String messageToSend = CryptoLibrary.aesEncrypt(user.getSessionKey(), HeaderHandler.pack(talkResponse));
+			talkResponse[6] = to.getUserId().toString();
+			String messageToSend = CryptoLibrary.aesEncrypt(from.getSessionKey(), HeaderHandler.pack(talkResponse));
 			sendMessage(messageToSend, MessageType.SERVER_CLIENT_TICKET);
 
 		} catch (Exception e) {

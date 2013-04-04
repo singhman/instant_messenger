@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -105,15 +106,23 @@ public class Server {
 	}
 
 	public User getUser(String userName) {
+		if(this.registeredUsers == null){
+			return null;
+		}
+		
 		return this.registeredUsers.get(userName);
 	}
 
 	public void loginUser(UUID userId, User user) {
-		this.onlineUsers.put(userId, user);
+		if(!this.onlineUsers.containsKey(userId)){
+			this.onlineUsers.put(userId, user);
+		}
 	}
 
 	public void logoutUser(UUID userId) {
-		this.onlineUsers.remove(userId);
+		if(this.onlineUsers.containsKey(userId)){
+			this.onlineUsers.remove(userId);
+		}
 	}
 
 	public boolean isOnline(UUID userId) {
@@ -121,10 +130,17 @@ public class Server {
 	}
 
 	public boolean isRegistered(String userName) {
+		if(this.registeredUsers == null){
+			return false;
+		}
 		return this.registeredUsers.containsKey(userName);
 	}
 
 	public boolean isOnline(String username) {
+		if(this.onlineUsers == null){
+			return false;
+		}
+		
 		for (User user : this.onlineUsers.values()) {
 			if (user.getUsername().equals(username)) {
 				return true;
@@ -133,9 +149,13 @@ public class Server {
 		return false;
 	}
 
-	public boolean isAlreadyOnlineByPort(int port) {
-		for (User user : onlineUsers.values()) {
-			if (user.getUserPort() == port) {
+	public boolean isAlreadyOnline(int port, InetAddress ip) {
+		if(this.onlineUsers == null){
+			return false;
+		}
+		
+		for (User user : this.onlineUsers.values()) {
+			if (user.getUserPort() == port && user.getUserIp().equals(ip)) {
 				return true;
 			}
 		}
@@ -143,6 +163,10 @@ public class Server {
 	}
 
 	public User getRegisteredUserByUUID(UUID userId) {
+		if(this.registeredUsers == null){
+			return null;
+		}
+		
 		for (User user : this.registeredUsers.values()) {
 			if (user.getUserId() != null) {
 				if (user.getUserId().equals(userId)) {
@@ -154,6 +178,10 @@ public class Server {
 	}
 	
 	public User getOnlineUser(String userName){
+		if(this.onlineUsers == null){
+			return null;
+		}
+		
 		for (User user : this.onlineUsers.values()) {
 			if (user.getUsername().equals(userName)) {
 				return user;
@@ -164,6 +192,10 @@ public class Server {
 	}
 
 	public User getOnlineUserByUUID(UUID userId) {
+		if(this.onlineUsers == null){
+			return null;
+		}
+		
 		return this.onlineUsers.get(userId);
 	}
 

@@ -19,6 +19,7 @@ import java.security.Signature;
 import java.security.spec.InvalidParameterSpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.ArrayList;
 import java.util.Random;
 
 import javax.crypto.Cipher;
@@ -121,6 +122,63 @@ public class CryptoLibrary {
 					CryptoLibrary.CHARSET);
 		} catch (Exception e) {
 			throw new IllegalStateException(e);
+		}
+	}
+	
+	/*
+	 * Create an HMAC signature for the given message with the given key.
+	 * 
+	 * @param key The key to use in the HMAC.
+	 * 
+	 * @param msg The message to create an HMAC for.
+	 * 
+	 * @return The message appended with the HMAC using 
+	 * <code>HeaderHandler</code>.
+	 * 
+	 * @throws HmacException Thrown for all errors.
+	 */
+	public static String hmacCreate(SecretKey key, String message) 
+		throws HmacException 
+	{
+		String[] params = new String[] { message, hmacGenerate(key, message) };
+		
+		return HeaderHandler.pack(params);
+	}
+	
+	/*
+	 * Verify that the given HMAC is correct for the given message using
+	 * the given key.
+	 * 
+	 * @param key The key to verify the HMAC with.
+	 * 
+	 * @param msg The message to verify the HMAC for.  This should be
+	 * a string created by <code>HeaderHandler</code> that contains
+	 * the message as the first parameter and the HMAC as the second.
+	 * 
+	 * @return The contents of the message without the HMAC appended.
+	 * 
+	 * @throws HmacException Thrown for all errors or if the HMAC is invalid.
+	 */
+	public static String hmacVerify(SecretKey key, String message) 
+	throws HmacException 
+	{
+		final ArrayList<String> params = HeaderHandler.unpack(message);
+		
+		message = params.get(0);
+		final String hmac = params.get(1);
+		
+		String generatedHmac;
+		try {
+			generatedHmac = hmacGenerate(key, message);
+		
+		} catch (Exception e) {
+			throw new HmacException(e);
+		}
+		
+		if (generatedHmac.equals(hmac)) {
+			return message;
+		} else {
+			throw new HmacException();
 		}
 	}
 

@@ -12,6 +12,8 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 import networksecurity.common.CryptoLibrary;
+import networksecurity.common.CryptoLibrary.HmacException;
+import networksecurity.common.NonceManager;
 import networksecurity.common.CryptoLibrary.EncryptionException;
 import networksecurity.common.CryptoLibrary.KeyCreationException;
 import networksecurity.common.MessageType;
@@ -106,28 +108,26 @@ public class MessageHandler implements Runnable {
 	}
 
 	private void authenticationBegin(String message) {
-		String[] messageStrings = new String[4];
+		String[] authRequest = new String[4];
 
-		/* Need a nonce generator and verifier */
-		final long nonce = 0;
+		final long nonce = NonceManager.generateNonce();
 
 		try {
 			this.client.setdhKeyPair(CryptoLibrary.dhGenerateKeyPair());
 
-			messageStrings[0] = this.client.getUserName();
-			messageStrings[1] = this.client.getPassword();
-			messageStrings[2] = new String(this.client.getDHKeyPair()
-					.getPublic().getEncoded(), CryptoLibrary.CHARSET);
-			messageStrings[3] = String.valueOf(nonce);
+			authRequest[0] = this.client.getUserName();
+			authRequest[1] = this.client.getPassword();
+			authRequest[2] = new String(this.client.getDHKeyPair().getPublic()
+					.getEncoded(), CryptoLibrary.CHARSET);
+			authRequest[3] = String.valueOf(nonce);
 
 			SecretKey key = CryptoLibrary.aesGenerateKey();
 
 			/*
-			 * Problem: Data must not be longer than 117 bytes to encrypt with
-			 * RSA
+			 * Note: Data must not be longer than 117 bytes to encrypt with RSA
 			 */
 			String encryptedMessage = CryptoLibrary.aesEncrypt(key,
-					HeaderHandler.pack(messageStrings));
+					HeaderHandler.pack(authRequest));
 
 			String encryptedKey = CryptoLibrary.rsaEncrypt(
 					this.client.getServerPublicKey(),
@@ -156,8 +156,7 @@ public class MessageHandler implements Runnable {
 					CryptoLibrary.CHARSET);
 
 			/*
-			 * Need to verify the decoded string received, not with the encoded
-			 * bytes
+			 * Verify decoded string received, not with the encoded bytes
 			 */
 			if (CryptoLibrary.verify(this.client.getServerPublicKey(),
 					response.get(0), signedResponse)) {
@@ -172,13 +171,17 @@ public class MessageHandler implements Runnable {
 
 			this.client.setUserId(UUID.fromString(decodedParams.get(0)));
 
-			/* Note: need to verify nonce decodedParams.get(1) */
-			long nonce2 = Long.valueOf(decodedParams.get(2));
+			if (!NonceManager.verifyNonce(Long.valueOf(decodedParams.get(1)))) {
+				System.out
+						.println("Wrong Nonce in Client Server Authentication");
+			}
+
+			long serverNonce = Long.valueOf(decodedParams.get(2));
 
 			String[] responseToServer = new String[2];
 			responseToServer[0] = this.client.getUserId().toString();
 			responseToServer[1] = CryptoLibrary.aesEncrypt(
-					this.client.getSecretKey(), String.valueOf(nonce2));
+					this.client.getSecretKey(), String.valueOf(serverNonce));
 
 			sendMessage(HeaderHandler.pack(responseToServer),
 					MessageType.CLIENT_SERVER_VERIFY);
@@ -257,7 +260,7 @@ public class MessageHandler implements Runnable {
 				this.client.setUserListTimestamp(0);
 			} else {
 				System.out
-						.println("Ticket Response received from server is not authentic");
+						.println("Ticket Response received from server with expired timestamp");
 				return;
 			}
 
@@ -285,7 +288,7 @@ public class MessageHandler implements Runnable {
 			helloMessage[2] = peerInfo.getPeerUsername();
 			helloMessage[3] = new String(this.client.getDHKeyPair().getPublic()
 					.getEncoded(), CryptoLibrary.CHARSET);
-			helloMessage[4] = "0";
+			helloMessage[4] = String.valueOf(NonceManager.generateNonce());
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 			return;
@@ -314,7 +317,7 @@ public class MessageHandler implements Runnable {
 		UUID peerUserId = null;
 		PublicKey publicKey = null;
 		SecretKey secretKey = null;
-		long nonce1 = 0;
+		long peerNonce = 0;
 		try {
 			ticket = CryptoLibrary.aesDecrypt(this.client.getSecretKey(),
 					response.get(0));
@@ -322,7 +325,7 @@ public class MessageHandler implements Runnable {
 
 			if (!this.client.getUserName().equals(ticketParams.get(0))) {
 				System.out
-						.println("This ticket was intended for somebody else");
+						.println("Username Unmatched: This ticket was intended for somebody else");
 				return;
 			}
 
@@ -385,7 +388,8 @@ public class MessageHandler implements Runnable {
 				e.printStackTrace();
 				return;
 			}
-			nonce1 = Long.valueOf(helloParams.get(4));
+			peerNonce = Long.valueOf(helloParams.get(4));
+
 		} catch (DecryptionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -416,8 +420,9 @@ public class MessageHandler implements Runnable {
 		}
 
 		String[] nonces = new String[2];
-		nonces[0] = String.valueOf(nonce1);
-		nonces[1] = String.valueOf("1");
+		nonces[0] = String.valueOf(peerNonce);
+		nonces[1] = String.valueOf(NonceManager.generateNonce());
+
 		try {
 			String encryptedNonces = CryptoLibrary.aesEncrypt(
 					peerInfo.getSecretKey(), HeaderHandler.pack(nonces));
@@ -436,7 +441,7 @@ public class MessageHandler implements Runnable {
 				.unpack(message);
 		UUID userId = UUID.fromString(responseReceived.get(0));
 		PeerInfo peerInfo = this.client.getPeer(userId);
-		long nonce2 = 0;
+		long peerNonce = 0;
 
 		try {
 			String dhPublicKey = CryptoLibrary.aesDecrypt(
@@ -448,7 +453,12 @@ public class MessageHandler implements Runnable {
 			final ArrayList<String> nonces = HeaderHandler.unpack(CryptoLibrary
 					.aesDecrypt(peerInfo.getSecretKey(),
 							responseReceived.get(2)));
-			nonce2 = Long.valueOf(nonces.get(1));
+			if (!NonceManager.verifyNonce(Long.valueOf(nonces.get(0)))) {
+				System.out
+						.println("Nonces Unmatched in Client client authentication");
+				return;
+			}
+			peerNonce = Long.valueOf(nonces.get(1));
 		} catch (KeyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -459,27 +469,32 @@ public class MessageHandler implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 		String[] response = new String[2];
 		response[0] = this.client.getUserId().toString();
 		try {
-			response[1] = CryptoLibrary.aesEncrypt(peerInfo.getSecretKey(), String.valueOf(nonce2));
+			response[1] = CryptoLibrary.aesEncrypt(peerInfo.getSecretKey(),
+					String.valueOf(peerNonce));
 		} catch (EncryptionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		sendMessage(HeaderHandler.pack(response), MessageType.CLIENT_CLIENT_MUTH_AUTH);
+
+		sendMessage(HeaderHandler.pack(response),
+				MessageType.CLIENT_CLIENT_MUTH_AUTH);
 	}
-	
+
 	private void authenticationCompleteWithClient(String message) {
-		final ArrayList<String> responseReceived = HeaderHandler.unpack(message);
-		PeerInfo peerInfo = this.client.getPeer(UUID.fromString(responseReceived.get(0)));
-		
+		final ArrayList<String> responseReceived = HeaderHandler
+				.unpack(message);
+		PeerInfo peerInfo = this.client.getPeer(UUID
+				.fromString(responseReceived.get(0)));
+
 		try {
-			String decryptedNonce = CryptoLibrary.aesDecrypt(peerInfo.getSecretKey(), responseReceived.get(1));
-			if(decryptedNonce.equals("1")){
-				System.out.println("Authentication Complete");
+			String decryptedNonce = CryptoLibrary.aesDecrypt(
+					peerInfo.getSecretKey(), responseReceived.get(1));
+			if (NonceManager.verifyNonce(Long.valueOf(decryptedNonce))) {
+				System.out.println("Authentication Complete between Clients");
 			}
 		} catch (DecryptionException e) {
 			// TODO Auto-generated catch block
@@ -489,6 +504,28 @@ public class MessageHandler implements Runnable {
 
 	private void communicate(String message) {
 
+		final ArrayList<String> responseParams = HeaderHandler.unpack(message);
+		PeerInfo peerInfo = this.client.getPeer(UUID.fromString(responseParams
+				.get(0)));
+		String content;
+
+		try {
+			content = CryptoLibrary.hmacVerify(peerInfo.getSecretKey(),
+					responseParams.get(1));
+		} catch (HmacException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		try {
+			content = CryptoLibrary.aesDecrypt(peerInfo.getSecretKey(),
+					content);
+		} catch (DecryptionException e) {
+			return;
+		}
+		
+		final ArrayList<String> decryptedMessage = HeaderHandler.unpack(content);
+		System.out.println(decryptedMessage.get(0));
 	}
 
 	private void logoutClient(String message) {

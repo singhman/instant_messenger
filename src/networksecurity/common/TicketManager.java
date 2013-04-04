@@ -12,9 +12,9 @@ public class TicketManager {
 	
 	private static final int TIMESTAMP_LIMIT = 1 * 60 * 1000;
 	
-	public static String[] getTicket(User fromUser, String to, SecretKey key){
+	public static String[] getTicket(User from, String to, SecretKey key){
 		long currentTime = System.currentTimeMillis();
-		Ticket ticket = new Ticket(fromUser.getUsername(),to,fromUser.getUserId(),key, currentTime);
+		Ticket ticket = new Ticket(from.getUsername(),to,from.getUserId(),key, currentTime);
 		String[] generatedTicket = new String[5];
 		generatedTicket[0] = ticket.getToUserName();
 		generatedTicket[1] = ticket.getFromUserName();

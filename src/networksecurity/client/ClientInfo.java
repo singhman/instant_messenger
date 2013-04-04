@@ -18,7 +18,6 @@ import javax.crypto.SecretKey;
 import networksecurity.common.ClientConfigReader;
 import networksecurity.common.CryptoLibrary;
 import networksecurity.common.MessageType;
-import networksecurity.server.User;
 
 public class ClientInfo {
 
@@ -202,7 +201,11 @@ public class ClientInfo {
 	}
 	
 	public boolean isPeerExist(String username){
-		for (PeerInfo peer: peers.values()) {
+		if(this.peers == null){
+			return false;
+		}
+		
+		for (PeerInfo peer: this.peers.values()) {
 			if (peer.getPeerUsername().equals(username)) {
 				return true;
 			}
@@ -210,7 +213,25 @@ public class ClientInfo {
 		return false;
 	}
 	
+	public PeerInfo getPeerByUserName(String username){
+		if(this.peers == null){
+			return null;
+		}
+		
+		for(PeerInfo peer: this.peers.values()){
+			if(peer.getPeerUsername().equals(username)){
+				return peer;
+			}
+		}
+		
+		return null;
+	}
+	
 	public PeerInfo getPeer(UUID userId){
+		if(this.peers == null){
+			return null;
+		}
+		
 		return this.peers.get(userId);
 	}
 }
