@@ -16,6 +16,7 @@ import javax.crypto.SecretKey;
 import networksecurity.common.CookieManager;
 import networksecurity.common.CryptoLibrary;
 import networksecurity.common.NonceManager;
+import networksecurity.common.TimestampManager;
 import networksecurity.common.CryptoLibrary.DecryptionException;
 import networksecurity.common.CryptoLibrary.EncryptionException;
 import networksecurity.common.CryptoLibrary.KeyCreationException;
@@ -26,7 +27,6 @@ import networksecurity.common.TicketManager;
 
 public class MessageHandler implements Runnable {
 
-	private static final int TIMESTAMP_LIMIT = 1 * 60 * 1000;
 	private Server server;
 	private String message;
 	private InetAddress clientIp;
@@ -305,9 +305,8 @@ public class MessageHandler implements Runnable {
 		final ArrayList<String> decryptedParams = HeaderHandler
 				.unpack(decryptedMessage);
 		final Long timestamp = Long.valueOf(decryptedParams.get(1));
-		final Long currentTime = System.currentTimeMillis();
 
-		if (Math.abs(timestamp - currentTime) >= TIMESTAMP_LIMIT) {
+		if (TimestampManager.isExpired(timestamp)) {
 			System.out.println("Expired timestamp");
 			return;
 		}
@@ -352,16 +351,22 @@ public class MessageHandler implements Runnable {
 		final ArrayList<String> decryptedParams = HeaderHandler
 				.unpack(decryptedMessage);
 		final Long timestamp = Long.valueOf(decryptedParams.get(2));
-		final Long currentTime = System.currentTimeMillis();
 
-		if (Math.abs(timestamp - currentTime) >= TIMESTAMP_LIMIT) {
+		if (TimestampManager.isExpired(timestamp)) {
 			System.out.println("Expired talk request timestamp");
 			return;
 		}
 
+		User to = null;
+		
 		try {
-			User to = this.server.getOnlineUser(decryptedParams.get(1));
-
+			String toUserName = decryptedParams.get(1);
+			if(!this.server.isRegistered(toUserName)){
+				System.out.println(toUserName + " is not registered");
+				return;
+			}
+			
+			to = this.server.getOnlineUser(decryptedParams.get(1));
 			if (to == null) {
 				System.out.println(decryptedParams.get(1) + " is not online");
 				return;
@@ -413,10 +418,9 @@ public class MessageHandler implements Runnable {
 		
 		final ArrayList<String> logoutParams = HeaderHandler.unpack(decryptedMessage);
 		final Long timestamp = Long.valueOf(logoutParams.get(1));
-		final Long currentTime = System.currentTimeMillis();
 
-		if (Math.abs(timestamp - currentTime) >= TIMESTAMP_LIMIT) {
-			System.out.println("Expired talk request timestamp");
+		if (TimestampManager.isExpired(timestamp)) {
+			System.out.println("Expired logout timestamp");
 			return;
 		} 
 		

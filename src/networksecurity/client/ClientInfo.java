@@ -23,7 +23,6 @@ public class ClientInfo {
 	private String username;
 	private String password;
 	private UUID userId;
-	private long userListTimeStamp;
 	private ConnectionInfo connectionInfo;
 	private PublicKey serverPublicKey;
 	private KeyPair dhKeyPair;
@@ -57,10 +56,6 @@ public class ClientInfo {
 		this.userId = userId;
 	}
 
-	public void setUserListTimestamp(long timestamp){
-		this.userListTimeStamp = timestamp;
-	}
-
 	public void setServerPublicKey(PublicKey key) {
 		this.serverPublicKey = key;
 	}
@@ -88,10 +83,6 @@ public class ClientInfo {
 
 	public UUID getUserId() {
 		return this.userId;
-	}
-	
-	public long getUserListTimestamp(){
-		return this.userListTimeStamp;
 	}
 	
 	public ConnectionInfo getConnectionInfo(){
@@ -191,5 +182,11 @@ public class ClientInfo {
 			e.printStackTrace();
 			return;
 		}
+	}
+	
+	public void destoryKeys(){
+		this.setdhKeyPair(null);
+		this.setSecretKey(null);
+		this.setUserId(null);
 	}
 }

@@ -13,6 +13,10 @@ public class Peers {
 		this.peers.put(userId, peerInfo);
 	}
 	
+	public void clear(){
+		this.peers.clear();
+	}
+	
 	public boolean isExist(UUID userId){
 		return this.peers.containsKey(userId);
 	}

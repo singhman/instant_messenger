@@ -20,11 +20,9 @@ import networksecurity.common.MessageType;
 import networksecurity.common.CryptoLibrary.DecryptionException;
 import networksecurity.common.MessageType.UnsupportedMessageTypeException;
 import networksecurity.common.HeaderHandler;
+import networksecurity.common.TimestampManager;
 
 public class MessageHandler implements Runnable {
-
-	private final static long TICKET_EXPIRATION = 5 * 60 * 1000;
-	private final static long MESSAGE_EXPIRATION = 1 * 60 * 1000;
 
 	private String message;
 	private Client client;
@@ -99,13 +97,14 @@ public class MessageHandler implements Runnable {
 	}
 
 	private void sendMessage(String message, MessageType messageType) {
-		this.client.clientInfo.sendMessage(message, messageType, this.destinationIp,
-				this.destinationPort);
+		this.client.clientInfo.sendMessage(message, messageType,
+				this.destinationIp, this.destinationPort);
 	}
 
 	private void sendMessage(String message, MessageType messageType,
 			InetAddress destIp, int destPort) {
-		this.client.clientInfo.sendMessage(message, messageType, destIp, destPort);
+		this.client.clientInfo.sendMessage(message, messageType, destIp,
+				destPort);
 	}
 
 	private void authenticationBegin(String message) {
@@ -114,12 +113,13 @@ public class MessageHandler implements Runnable {
 		final long nonce = NonceManager.generateNonce();
 
 		try {
-			this.client.clientInfo.setdhKeyPair(CryptoLibrary.dhGenerateKeyPair());
+			this.client.clientInfo.setdhKeyPair(CryptoLibrary
+					.dhGenerateKeyPair());
 
 			authRequest[0] = this.client.clientInfo.getUserName();
 			authRequest[1] = this.client.clientInfo.getPassword();
-			authRequest[2] = new String(this.client.clientInfo.getDHKeyPair().getPublic()
-					.getEncoded(), CryptoLibrary.CHARSET);
+			authRequest[2] = new String(this.client.clientInfo.getDHKeyPair()
+					.getPublic().getEncoded(), CryptoLibrary.CHARSET);
 			authRequest[3] = String.valueOf(nonce);
 
 			SecretKey key = CryptoLibrary.aesGenerateKey();
@@ -151,15 +151,17 @@ public class MessageHandler implements Runnable {
 
 		try {
 			byte[] publicExp = response.get(0).getBytes(CryptoLibrary.CHARSET);
-			this.client.clientInfo.setSecretKey(CryptoLibrary.dhGenerateSecretKey(
-					this.client.clientInfo.getDHKeyPair().getPrivate(), publicExp));
+			this.client.clientInfo.setSecretKey(CryptoLibrary
+					.dhGenerateSecretKey(this.client.clientInfo.getDHKeyPair()
+							.getPrivate(), publicExp));
 			byte[] signedResponse = response.get(1).getBytes(
 					CryptoLibrary.CHARSET);
 
 			/*
 			 * Verify decoded string received, not with the encoded bytes
 			 */
-			if (CryptoLibrary.verify(this.client.clientInfo.getServerPublicKey(),
+			if (CryptoLibrary.verify(
+					this.client.clientInfo.getServerPublicKey(),
 					response.get(0), signedResponse)) {
 			} else {
 				System.out.println("Signature not verified");
@@ -168,9 +170,11 @@ public class MessageHandler implements Runnable {
 
 			final ArrayList<String> decodedParams = HeaderHandler
 					.unpack(CryptoLibrary.aesDecrypt(
-							this.client.clientInfo.getSecretKey(), response.get(2)));
+							this.client.clientInfo.getSecretKey(),
+							response.get(2)));
 
-			this.client.clientInfo.setUserId(UUID.fromString(decodedParams.get(0)));
+			this.client.clientInfo.setUserId(UUID.fromString(decodedParams
+					.get(0)));
 
 			if (!NonceManager.verifyNonce(Long.valueOf(decodedParams.get(1)))) {
 				System.out
@@ -182,7 +186,8 @@ public class MessageHandler implements Runnable {
 			String[] responseToServer = new String[2];
 			responseToServer[0] = this.client.clientInfo.getUserId().toString();
 			responseToServer[1] = CryptoLibrary.aesEncrypt(
-					this.client.clientInfo.getSecretKey(), String.valueOf(serverNonce));
+					this.client.clientInfo.getSecretKey(),
+					String.valueOf(serverNonce));
 
 			sendMessage(HeaderHandler.pack(responseToServer),
 					MessageType.CLIENT_SERVER_VERIFY);
@@ -206,14 +211,16 @@ public class MessageHandler implements Runnable {
 
 	private void displayUsersList(String message) {
 		try {
-			message = CryptoLibrary.aesDecrypt(this.client.clientInfo.getSecretKey(),
-					message);
+			message = CryptoLibrary.aesDecrypt(
+					this.client.clientInfo.getSecretKey(), message);
 			final ArrayList<String> params = HeaderHandler.unpack(message);
 
-			if (Long.valueOf(params.get(1)).equals(
-					this.client.clientInfo.getUserListTimestamp() + 1)) {
-				this.client.clientInfo.setUserListTimestamp(0);
+			if (TimestampManager.verifyTimestamp(params.get(1))) {
 				System.out.println(params.get(0));
+			}
+			else {
+				System.out.println("Time stamp not verified");
+				return;
 			}
 		} catch (DecryptionException e) {
 			e.printStackTrace();
@@ -226,8 +233,8 @@ public class MessageHandler implements Runnable {
 		String ticketToPeer = null;
 
 		try {
-			message = CryptoLibrary.aesDecrypt(this.client.clientInfo.getSecretKey(),
-					message);
+			message = CryptoLibrary.aesDecrypt(
+					this.client.clientInfo.getSecretKey(), message);
 			final ArrayList<String> talkResponse = HeaderHandler
 					.unpack(message);
 
@@ -256,12 +263,9 @@ public class MessageHandler implements Runnable {
 
 			ticketToPeer = talkResponse.get(4);
 
-			if (Long.valueOf(talkResponse.get(5)).equals(
-					this.client.clientInfo.getUserListTimestamp() + 1)) {
-				this.client.clientInfo.setUserListTimestamp(0);
-			} else {
+			if(!TimestampManager.verifyTimestamp(talkResponse.get(5))){
 				System.out
-						.println("Ticket Response received from server with expired timestamp");
+						.println("Ticket Response received from server is not verified");
 				return;
 			}
 
@@ -274,7 +278,8 @@ public class MessageHandler implements Runnable {
 		}
 
 		try {
-			this.client.clientInfo.setdhKeyPair(CryptoLibrary.dhGenerateKeyPair());
+			this.client.clientInfo.setdhKeyPair(CryptoLibrary
+					.dhGenerateKeyPair());
 		} catch (KeyCreationException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -287,8 +292,8 @@ public class MessageHandler implements Runnable {
 			helloMessage[0] = "HELLO";
 			helloMessage[1] = this.client.clientInfo.getUserName();
 			helloMessage[2] = peerInfo.getPeerUsername();
-			helloMessage[3] = new String(this.client.clientInfo.getDHKeyPair().getPublic()
-					.getEncoded(), CryptoLibrary.CHARSET);
+			helloMessage[3] = new String(this.client.clientInfo.getDHKeyPair()
+					.getPublic().getEncoded(), CryptoLibrary.CHARSET);
 			helloMessage[4] = String.valueOf(NonceManager.generateNonce());
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
@@ -320,11 +325,12 @@ public class MessageHandler implements Runnable {
 		SecretKey secretKey = null;
 		long peerNonce = 0;
 		try {
-			ticket = CryptoLibrary.aesDecrypt(this.client.clientInfo.getSecretKey(),
-					response.get(0));
+			ticket = CryptoLibrary.aesDecrypt(
+					this.client.clientInfo.getSecretKey(), response.get(0));
 			final ArrayList<String> ticketParams = HeaderHandler.unpack(ticket);
 
-			if (!this.client.clientInfo.getUserName().equals(ticketParams.get(0))) {
+			if (!this.client.clientInfo.getUserName().equals(
+					ticketParams.get(0))) {
 				System.out
 						.println("Username Unmatched: This ticket was intended for somebody else");
 				return;
@@ -345,9 +351,8 @@ public class MessageHandler implements Runnable {
 			}
 
 			long timestamp = Long.valueOf(ticketParams.get(4));
-			final Long currentTime = System.currentTimeMillis();
 
-			if (Math.abs(timestamp - currentTime) >= TICKET_EXPIRATION) {
+			if (TimestampManager.isExpired(timestamp)) {
 				System.out.println("Expired ticket");
 				return;
 			}
@@ -369,7 +374,8 @@ public class MessageHandler implements Runnable {
 				return;
 			}
 
-			if (!this.client.clientInfo.getUserName().equals(helloParams.get(2))) {
+			if (!this.client.clientInfo.getUserName()
+					.equals(helloParams.get(2))) {
 				System.out
 						.println("This message was intented for somebody else");
 				return;
@@ -448,8 +454,9 @@ public class MessageHandler implements Runnable {
 			String dhPublicKey = CryptoLibrary.aesDecrypt(
 					peerInfo.getTempSessionKey(), responseReceived.get(1));
 			byte[] publicExp = dhPublicKey.getBytes(CryptoLibrary.CHARSET);
-			peerInfo.setSecretKey(CryptoLibrary.dhGenerateSecretKey(this.client
-					.clientInfo.getDHKeyPair().getPrivate(), publicExp));
+			peerInfo.setSecretKey(CryptoLibrary.dhGenerateSecretKey(
+					this.client.clientInfo.getDHKeyPair().getPrivate(),
+					publicExp));
 
 			final ArrayList<String> nonces = HeaderHandler.unpack(CryptoLibrary
 					.aesDecrypt(peerInfo.getSecretKey(),
@@ -483,7 +490,8 @@ public class MessageHandler implements Runnable {
 
 		sendMessage(HeaderHandler.pack(response),
 				MessageType.CLIENT_CLIENT_MUTH_AUTH);
-		this.client.sendMessage(peerInfo.getPeerUsername(), this.client.pendingMessages.get(peerInfo.getPeerUsername()));
+		this.client.sendMessage(peerInfo.getPeerUsername(),
+				this.client.pendingMessages.get(peerInfo.getPeerUsername()));
 	}
 
 	private void authenticationCompleteWithClient(String message) {
@@ -507,8 +515,8 @@ public class MessageHandler implements Runnable {
 	private void communicate(String message) {
 
 		final ArrayList<String> responseParams = HeaderHandler.unpack(message);
-		PeerInfo peerInfo = this.client.peers.getPeer(UUID.fromString(responseParams
-				.get(0)));
+		PeerInfo peerInfo = this.client.peers.getPeer(UUID
+				.fromString(responseParams.get(0)));
 		String content;
 
 		try {
@@ -520,42 +528,41 @@ public class MessageHandler implements Runnable {
 		}
 
 		try {
-			content = CryptoLibrary.aesDecrypt(peerInfo.getSecretKey(),
-					content);
+			content = CryptoLibrary
+					.aesDecrypt(peerInfo.getSecretKey(), content);
 		} catch (DecryptionException e) {
 			return;
 		}
-		
-		final ArrayList<String> decryptedMessage = HeaderHandler.unpack(content);
-		
+
+		final ArrayList<String> decryptedMessage = HeaderHandler
+				.unpack(content);
+
 		long timestamp = Long.valueOf(decryptedMessage.get(1));
-		long currentTime = System.currentTimeMillis();
-		
-		if(Math.abs(timestamp - currentTime) >= MESSAGE_EXPIRATION){
+
+		if (TimestampManager.isExpired(timestamp)) {
 			System.out.println("Message Expired");
 			return;
 		}
-		
-		System.out.println(peerInfo.getPeerUsername() + ": " +decryptedMessage.get(0));
+
+		System.out.println(peerInfo.getPeerUsername() + ": "
+				+ decryptedMessage.get(0));
 	}
 
 	private void logoutClient(String message) {
 		String logoutMessage = null;
 		try {
-			logoutMessage = CryptoLibrary.aesDecrypt(this.client.clientInfo.getSecretKey(), message);
+			logoutMessage = CryptoLibrary.aesDecrypt(
+					this.client.clientInfo.getSecretKey(), message);
 		} catch (DecryptionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return;
 		}
-		
-		if (Long.valueOf(logoutMessage).equals(
-				this.client.clientInfo.getUserListTimestamp() + 1)) {
-			this.client.clientInfo.setUserListTimestamp(0);
-		} else {
-			System.out
-					.println("Logout timestamp expired");
+
+		if (!TimestampManager.verifyTimestamp(logoutMessage)) {
+			System.out.println("Logout timestamp unverified");
 			return;
 		}
+		this.client.logout();
 	}
 }

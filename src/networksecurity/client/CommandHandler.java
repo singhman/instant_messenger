@@ -8,6 +8,7 @@ import networksecurity.common.CryptoLibrary;
 import networksecurity.common.CryptoLibrary.EncryptionException;
 import networksecurity.common.HeaderHandler;
 import networksecurity.common.MessageType;
+import networksecurity.common.TimestampManager;
 
 public class CommandHandler implements Runnable {
 
@@ -87,15 +88,12 @@ public class CommandHandler implements Runnable {
 			return;
 		}
 
-		long currentTime = System.currentTimeMillis();
-		this.client.clientInfo.setUserListTimestamp(currentTime);
-
 		String[] message = new String[2];
 		message[0] = String.valueOf(this.client.clientInfo.getUserId());
 
 		String[] encryptedMessage = new String[2];
 		encryptedMessage[0] = "LIST";
-		encryptedMessage[1] = String.valueOf(currentTime);
+		encryptedMessage[1] = String.valueOf(TimestampManager.getTimestamp());
 
 		try {
 			message[1] = CryptoLibrary.aesEncrypt(this.client.clientInfo.getSecretKey(),
@@ -128,13 +126,10 @@ public class CommandHandler implements Runnable {
 			String[] talkRequest = new String[2];
 			talkRequest[0] = String.valueOf(this.client.clientInfo.getUserId());
 
-			long currentTime = System.currentTimeMillis();
-			this.client.clientInfo.setUserListTimestamp(currentTime);
-
 			String[] encryptedMessage = new String[3];
 			encryptedMessage[0] = "TALK";
 			encryptedMessage[1] = peername;
-			encryptedMessage[2] = String.valueOf(currentTime);
+			encryptedMessage[2] = String.valueOf(TimestampManager.getTimestamp());
 
 			try {
 				talkRequest[1] = CryptoLibrary.aesEncrypt(
@@ -156,9 +151,8 @@ public class CommandHandler implements Runnable {
 		message[0] = this.client.clientInfo.getUserId().toString();
 		String[] encryptedMessage = new String[2];
 		encryptedMessage[0] = "LOGOUT";
-		long timestamp = System.currentTimeMillis();
-		this.client.clientInfo.setUserListTimestamp(timestamp);
-		encryptedMessage[1] = String.valueOf(timestamp);
+
+		encryptedMessage[1] = String.valueOf(TimestampManager.getTimestamp());
 		try{
 			message[1] = CryptoLibrary.aesEncrypt(this.client.clientInfo.getSecretKey(),
 					HeaderHandler.pack(encryptedMessage));

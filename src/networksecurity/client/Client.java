@@ -13,7 +13,7 @@ public class Client {
 	public ClientInfo clientInfo = null;
 	public Peers peers = new Peers();
 	public HashMap<String, String> pendingMessages = new HashMap<String, String>();
-	public static boolean running = true;
+	public boolean running = true;
 
 	/* starting point of the client */
 	public static void main(String[] args) throws Exception {
@@ -110,5 +110,11 @@ public class Client {
 		
 		messageParams[1] = hMac;
 		this.clientInfo.sendMessage(HeaderHandler.pack(messageParams), MessageType.CLIENT_CLIENT_MESSAGE, peerInfo.getPeerIp(), peerInfo.getPeerPort());
+	}
+	
+	public void logout(){
+		this.running = true;
+		this.clientInfo.destoryKeys();
+		this.peers.clear();
 	}
 }
