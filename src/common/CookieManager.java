@@ -1,4 +1,4 @@
-package networksecurity.common;
+package common;
 
 import java.net.InetAddress;
 import java.util.Random;

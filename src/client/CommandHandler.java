@@ -1,14 +1,15 @@
-package networksecurity.client;
+package client;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import networksecurity.common.CryptoLibrary;
-import networksecurity.common.CryptoLibrary.EncryptionException;
-import networksecurity.common.HeaderHandler;
-import networksecurity.common.MessageType;
-import networksecurity.common.TimestampManager;
+import common.CryptoLibrary;
+import common.CryptoLibrary.EncryptionException;
+import common.HeaderHandler;
+import common.MessageType;
+import common.TimestampManager;
+
 
 public class CommandHandler implements Runnable {
 

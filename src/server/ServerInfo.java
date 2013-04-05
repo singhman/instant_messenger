@@ -1,4 +1,4 @@
-package networksecurity.server;
+package server;
 
 import java.security.PrivateKey;
 

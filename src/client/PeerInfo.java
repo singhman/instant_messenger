@@ -1,4 +1,4 @@
-package networksecurity.client;
+package client;
 
 import java.net.InetAddress;
 import java.util.UUID;

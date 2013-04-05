@@ -1,12 +1,15 @@
-package networksecurity.client;
+package client;
 
 import java.net.DatagramPacket;
 import java.util.HashMap;
 
-import networksecurity.common.*;
-import networksecurity.common.ConfigReader.ConfigReaderException;
-import networksecurity.common.CryptoLibrary.EncryptionException;
-import networksecurity.common.CryptoLibrary.HmacException;
+import common.CryptoLibrary;
+import common.HeaderHandler;
+import common.MessageType;
+import common.ConfigReader.ConfigReaderException;
+import common.CryptoLibrary.EncryptionException;
+import common.CryptoLibrary.HmacException;
+
 
 public class Client {
 
@@ -20,7 +23,7 @@ public class Client {
 		// TODO Auto-generated method stub
 		
 		Client client = new Client();
-		String configFile = "src/networksecurity/resources/client.cfg";
+		String configFile = "src/resources/client.cfg";
 		if (args.length == 1) {
 			configFile = args[0];
 		}
@@ -33,7 +36,8 @@ public class Client {
 			configReader = new ClientConfigReader(configFile);
 		} catch (ConfigReaderException e) {
 			System.out.println("Unable to read config file");
-			throw new RuntimeException(e);
+			e.printStackTrace();
+			return;
 		}
 
 		this.clientInfo = new ClientInfo(configReader);

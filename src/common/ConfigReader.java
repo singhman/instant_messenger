@@ -1,4 +1,4 @@
-package networksecurity.common;
+package common;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -8,7 +8,7 @@ public abstract class ConfigReader {
 
 	private static BufferedReader input;
 
-	/**
+	/*
 	 * Parse the file at the given location using the given actions to process
 	 * each entry.
 	 * 
@@ -53,14 +53,14 @@ public abstract class ConfigReader {
 		}
 	}
 
-	/**
+	/*
 	 * An abstract action to perform for a config entry.
 	 */
 	public static abstract class ConfigEntryAction {
 		
 		private final String actionId;
 		
-		/**
+		/*
 		 * Get the string that identifies this action.
 		 * 
 		 * @return The string that identifies this action.
@@ -69,7 +69,7 @@ public abstract class ConfigReader {
 			return actionId;
 		}
 
-		/**
+		/*
 		 * @param id
 		 *            The string that identifies this action.
 		 */
@@ -77,7 +77,7 @@ public abstract class ConfigReader {
 			actionId = id;
 		}
 
-		/**
+		/*
 		 * Peform the action for a given entry in the config file.
 		 * 
 		 * @param value

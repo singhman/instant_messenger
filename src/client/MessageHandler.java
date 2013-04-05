@@ -1,4 +1,4 @@
-package networksecurity.client;
+package client;
 
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
@@ -11,16 +11,17 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import networksecurity.common.CryptoLibrary;
-import networksecurity.common.CryptoLibrary.HmacException;
-import networksecurity.common.NonceManager;
-import networksecurity.common.CryptoLibrary.EncryptionException;
-import networksecurity.common.CryptoLibrary.KeyCreationException;
-import networksecurity.common.MessageType;
-import networksecurity.common.CryptoLibrary.DecryptionException;
-import networksecurity.common.MessageType.UnsupportedMessageTypeException;
-import networksecurity.common.HeaderHandler;
-import networksecurity.common.TimestampManager;
+import common.CryptoLibrary;
+import common.HeaderHandler;
+import common.MessageType;
+import common.NonceManager;
+import common.TimestampManager;
+import common.CryptoLibrary.DecryptionException;
+import common.CryptoLibrary.EncryptionException;
+import common.CryptoLibrary.HmacException;
+import common.CryptoLibrary.KeyCreationException;
+import common.MessageType.UnsupportedMessageTypeException;
+
 
 public class MessageHandler implements Runnable {
 

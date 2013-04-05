@@ -1,4 +1,4 @@
-package networksecurity.common;
+package common;
 
 public abstract class Action implements Runnable {
 

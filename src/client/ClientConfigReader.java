@@ -1,34 +1,21 @@
-package networksecurity.common;
+package client;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-/**
+import common.ConfigReader;
+
+
+/*
  * Config file reader for the client.
  */
 public class ClientConfigReader extends ConfigReader {
+	private int port;
+	private int serverPort;
+	private InetAddress serverAddress;
+	private String publicKeyLocation;
 	
-	/**
-	 * The port this client should listen on.
-	 */
-	int port;
-	
-	/**
-	 * The port the server listens on.
-	 */
-	int serverPort;
-	
-	/**
-	 * The address of the server.
-	 */
-	InetAddress serverAddress;
-	
-	/**
-	 * The location of the server's public key.
-	 */
-	String publicKeyLocation;
-	
-	/**
+	/*
 	 * Parse the config file in the given location.
 	 * 
 	 * @param filename The location of the config file to parse.
@@ -62,44 +49,36 @@ public class ClientConfigReader extends ConfigReader {
 		return this.publicKeyLocation;
 	}
 	
-	/**
+	/*
 	 * The config entry action for the client's port.
 	 */
 	private class PortEntry extends ConfigEntryAction {
 		public PortEntry() { super("port"); }
 
-		/* (non-Javadoc)
-		 * @see common.AbstractConfigReader.ConfigEntryAction#performAction(java.lang.String)
-		 */
 		@Override
 		public void performAction(String value) {
 			port = Integer.valueOf(value);		
 		}
 	}
 	
-	/**
+	/*
 	 * The config entry action for the server's port.
 	 */
 	private class ServerPortEntry extends ConfigEntryAction {
 		public ServerPortEntry() { super("serverPort"); }
 
-		/* (non-Javadoc)
-		 * @see common.AbstractConfigReader.ConfigEntryAction#performAction(java.lang.String)
-		 */
 		@Override
 		public void performAction(String value) {
 			serverPort = Integer.valueOf(value);		
 		}
 	}
-	/**
+	
+	/*
 	 * The config entry action for the server's address.
 	 */
 	private class ServerAddressEntry extends ConfigEntryAction {
 		public ServerAddressEntry() { super("serverAddress"); }
 
-		/* (non-Javadoc)
-		 * @see common.AbstractConfigReader.ConfigEntryAction#performAction(java.lang.String)
-		 */
 		@Override
 		public void performAction(String value) throws ConfigReaderException {
 			try {
@@ -110,15 +89,12 @@ public class ClientConfigReader extends ConfigReader {
 		}
 	}
 	
-	/**
+	/*
 	 * The config entry action for the server's public key location.
 	 */
 	private class PublicKeyEntry extends ConfigEntryAction {
 		public PublicKeyEntry() { super("publicKey"); }
 
-		/* (non-Javadoc)
-		 * @see common.AbstractConfigReader.ConfigEntryAction#performAction(java.lang.String)
-		 */
 		@Override
 		public void performAction(String value) {
 			publicKeyLocation = value;

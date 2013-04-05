@@ -1,22 +1,25 @@
-package networksecurity.common;
+package server;
 
 import java.util.ArrayList;
-import networksecurity.server.User;
+
+import server.User;
+
+import common.ConfigReader;
+
 
 public class ServerConfigReader extends ConfigReader {
 	
 	 /* The port the server will listen on */
 	public int port;
 	
-	/*The location of the server's private key.
-	 */
+	/*The location of the server's private key. */
 	public String privateKeyLocation;
 	
 	/*The list of users.
 	 */
 	public ArrayList<User> users = new ArrayList<User>();
 	
-	/**
+	/*
 	 * Parse the config file of the given name.
 	 * 
 	 * @param filename The filename of the config file to parse.
@@ -37,9 +40,6 @@ public class ServerConfigReader extends ConfigReader {
 	private class PortEntry extends ConfigEntryAction {
 		public PortEntry() { super("port"); }
 
-		/* (non-Javadoc)
-		 * @see common.AbstractConfigReader.ConfigEntryAction#performAction(java.lang.String)
-		 */
 		@Override
 		public void performAction(String value) {
 			port = Integer.valueOf(value);		
@@ -50,9 +50,6 @@ public class ServerConfigReader extends ConfigReader {
 	private class UserEntry extends ConfigEntryAction {
 		public UserEntry() { super("user"); }
 
-		/* (non-Javadoc)
-		 * @see common.AbstractConfigReader.ConfigEntryAction#performAction(java.lang.String)
-		 */
 		@Override
 		public void performAction(String value) {
 			String params[] = value.split(":", 2);
@@ -64,9 +61,6 @@ public class ServerConfigReader extends ConfigReader {
 	private class PrivateKeyEntry extends ConfigEntryAction {
 		public PrivateKeyEntry() { super("privateKey"); }
 
-		/* (non-Javadoc)
-		 * @see common.AbstractConfigReader.ConfigEntryAction#performAction(java.lang.String)
-		 */
 		@Override
 		public void performAction(String value) {
 			privateKeyLocation = value;

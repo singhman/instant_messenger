@@ -1,4 +1,4 @@
-package networksecurity.server;
+package server;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -13,17 +13,17 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import networksecurity.common.CookieManager;
-import networksecurity.common.CryptoLibrary;
-import networksecurity.common.NonceManager;
-import networksecurity.common.TimestampManager;
-import networksecurity.common.CryptoLibrary.DecryptionException;
-import networksecurity.common.CryptoLibrary.EncryptionException;
-import networksecurity.common.CryptoLibrary.KeyCreationException;
-import networksecurity.common.MessageType;
-import networksecurity.common.HeaderHandler;
-import networksecurity.common.MessageType.UnsupportedMessageTypeException;
-import networksecurity.common.TicketManager;
+import common.CookieManager;
+import common.CryptoLibrary;
+import common.HeaderHandler;
+import common.MessageType;
+import common.NonceManager;
+import common.TicketManager;
+import common.TimestampManager;
+import common.CryptoLibrary.DecryptionException;
+import common.CryptoLibrary.EncryptionException;
+import common.CryptoLibrary.KeyCreationException;
+import common.MessageType.UnsupportedMessageTypeException;
 
 public class MessageHandler implements Runnable {
 
@@ -158,8 +158,8 @@ public class MessageHandler implements Runnable {
 			System.out.println("User not resgistered");
 			return;
 		}
-		
-		if(this.server.isOnline(username)){
+
+		if (this.server.isOnline(username)) {
 			System.out.println("User already online");
 			return;
 		}
@@ -180,7 +180,8 @@ public class MessageHandler implements Runnable {
 		}
 
 		if (this.server.isAlreadyOnline(clientPort, clientIp)) {
-			System.out.println("Client already online: Same port and IP address");
+			System.out
+					.println("Client already online: Same port and IP address");
 		}
 
 		PublicKey publicKey = null;
@@ -263,9 +264,9 @@ public class MessageHandler implements Runnable {
 		try {
 			long nonce = Long.valueOf(CryptoLibrary.aesDecrypt(
 					user.getSessionKey(), responseReceived.get(1)));
-			if(NonceManager.verifyNonce(nonce)){
+			if (NonceManager.verifyNonce(nonce)) {
 				System.out.println("Authentication Complete");
-			} else{
+			} else {
 				System.out.println("Authentication Incomplete: Wrong Nonce");
 				return;
 			}
@@ -358,38 +359,44 @@ public class MessageHandler implements Runnable {
 		}
 
 		User to = null;
-		
+
 		try {
 			String toUserName = decryptedParams.get(1);
-			if(!this.server.isRegistered(toUserName)){
+			if (!this.server.isRegistered(toUserName)) {
 				System.out.println(toUserName + " is not registered");
 				return;
 			}
-			
+
 			to = this.server.getOnlineUser(decryptedParams.get(1));
 			if (to == null) {
 				System.out.println(decryptedParams.get(1) + " is not online");
 				return;
 			}
 
-			SecretKey key = null;
+			SecretKey tempSessionKey = null;
 			try {
-				key = CryptoLibrary.aesGenerateKey();
+				tempSessionKey = CryptoLibrary.aesGenerateKey();
 			} catch (KeyCreationException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 
+			String[] ticket = TicketManager.getTicket(
+					from.getUsername(), to.getUsername(),
+					from.getUserId(), tempSessionKey);
 			String[] talkResponse = new String[7];
 			talkResponse[0] = to.getUsername();
 			talkResponse[1] = to.getUserIp().getHostAddress();
 			talkResponse[2] = String.valueOf(to.getUserPort());
-			talkResponse[3] = new String(key.getEncoded(),
+			talkResponse[3] = new String(tempSessionKey.getEncoded(),
 					CryptoLibrary.CHARSET);
-			talkResponse[4] = CryptoLibrary.aesEncrypt(to.getSessionKey(), HeaderHandler.pack(TicketManager.getTicket(from, to.getUsername(), key)));
+			talkResponse[4] = CryptoLibrary.aesEncrypt(
+					to.getSessionKey(),
+					HeaderHandler.pack(ticket));
 			talkResponse[5] = String.valueOf(timestamp + 1);
 			talkResponse[6] = to.getUserId().toString();
-			String messageToSend = CryptoLibrary.aesEncrypt(from.getSessionKey(), HeaderHandler.pack(talkResponse));
+			String messageToSend = CryptoLibrary.aesEncrypt(
+					from.getSessionKey(), HeaderHandler.pack(talkResponse));
 			sendMessage(messageToSend, MessageType.SERVER_CLIENT_TICKET);
 
 		} catch (Exception e) {
@@ -400,42 +407,46 @@ public class MessageHandler implements Runnable {
 	}
 
 	private void logoutUser(String message) {
-		final ArrayList<String> ResponseReceived = HeaderHandler.unpack(message);
+		final ArrayList<String> ResponseReceived = HeaderHandler
+				.unpack(message);
 		UUID userId = UUID.fromString(ResponseReceived.get(0));
 		User user = this.server.getOnlineUserByUUID(userId);
-		if(user == null){
+		if (user == null) {
 			System.out.println("User is not online");
 			return;
 		}
-		
+
 		String decryptedMessage = null;
 		try {
-			decryptedMessage = CryptoLibrary.aesDecrypt(user.getSessionKey(), ResponseReceived.get(1));
+			decryptedMessage = CryptoLibrary.aesDecrypt(user.getSessionKey(),
+					ResponseReceived.get(1));
 		} catch (DecryptionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
-		final ArrayList<String> logoutParams = HeaderHandler.unpack(decryptedMessage);
+
+		final ArrayList<String> logoutParams = HeaderHandler
+				.unpack(decryptedMessage);
 		final Long timestamp = Long.valueOf(logoutParams.get(1));
 
 		if (TimestampManager.isExpired(timestamp)) {
 			System.out.println("Expired logout timestamp");
 			return;
-		} 
-		
+		}
+
 		String logoutResponse = String.valueOf(timestamp + 1);
 		String encryptedResponse = null;
 		try {
-			encryptedResponse = CryptoLibrary.aesEncrypt(user.getSessionKey(), logoutResponse);
+			encryptedResponse = CryptoLibrary.aesEncrypt(user.getSessionKey(),
+					logoutResponse);
 		} catch (EncryptionException e) {
 			// TODO: handle exception
 			e.printStackTrace();
 			return;
 		}
-		
+
 		sendMessage(encryptedResponse, MessageType.SERVER_CLIENT_LOGOUT);
-		
+
 		this.server.destroySessionKey(userId);
 		this.server.logoutUser(userId);
 	}

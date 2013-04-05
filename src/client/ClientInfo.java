@@ -1,4 +1,4 @@
-package networksecurity.client;
+package client;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -14,9 +14,9 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import networksecurity.common.ClientConfigReader;
-import networksecurity.common.CryptoLibrary;
-import networksecurity.common.MessageType;
+import common.CryptoLibrary;
+import common.MessageType;
+
 
 public class ClientInfo {
 

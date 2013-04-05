@@ -1,4 +1,4 @@
-package networksecurity.common;
+package common;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -6,15 +6,14 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-import networksecurity.server.User;
 
 public class TicketManager {
 	
 	private static final int TIMESTAMP_LIMIT = 1 * 60 * 1000;
 	
-	public static String[] getTicket(User from, String to, SecretKey key){
+	public static String[] getTicket(String fromUserName, String to, UUID fromUserId, SecretKey key){
 		long currentTime = System.currentTimeMillis();
-		Ticket ticket = new Ticket(from.getUsername(),to,from.getUserId(),key, currentTime);
+		Ticket ticket = new Ticket(fromUserName, to, fromUserId, key, currentTime);
 		String[] generatedTicket = new String[5];
 		generatedTicket[0] = ticket.getToUserName();
 		generatedTicket[1] = ticket.getFromUserName();

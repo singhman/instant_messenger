@@ -1,4 +1,4 @@
-package networksecurity.server;
+package server;
 
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
@@ -9,9 +9,9 @@ import java.util.HashMap;
 import java.util.UUID;
 import java.util.Iterator;
 
-import networksecurity.common.ConfigReader.ConfigReaderException;
-import networksecurity.common.CryptoLibrary;
-import networksecurity.common.ServerConfigReader;
+import common.CryptoLibrary;
+import common.ConfigReader.ConfigReaderException;
+
 
 public class Server {
 
@@ -26,7 +26,8 @@ public class Server {
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		String configFile = "src/networksecurity/resources/server.cfg";
+
+		String configFile = "src/resources/server.cfg";
 		if (args.length == 1) {
 			configFile = args[0];
 		}
@@ -44,7 +45,8 @@ public class Server {
 			configReader = new ServerConfigReader(configFile);
 		} catch (ConfigReaderException e) {
 			System.out.println("Unable to read config file");
-			throw new RuntimeException(e);
+			e.printStackTrace();
+			return;
 		}
 
 		this.initializeServerInfo(configReader);
@@ -57,7 +59,8 @@ public class Server {
 							.readPrivateKey(serverConfig.privateKeyLocation),
 					serverConfig.port);
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			e.printStackTrace();
+			return;
 		}
 
 		for (final User user : serverConfig.users) {
