@@ -43,7 +43,7 @@ public class Client {
 
 		this.clientInfo = new ClientInfo(configReader);
 		try {
-			this.clientInfo.loginPrompt();
+			this.clientInfo.loginPrompt(true);
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -23,13 +23,15 @@ import common.CryptoLibrary.EncryptionException;
 import common.CryptoLibrary.KeyCreationException;
 import common.MessageType.UnsupportedMessageTypeException;
 
-
 public class UDPMessageHandler implements Runnable {
 
 	private String message;
 	private Client client;
 	private int destinationPort;
 	private InetAddress destinationIp;
+	
+	private static PingAction pinger;
+	private static Thread pingerThread;
 
 	/* Constructor */
 	public UDPMessageHandler(Client client, String message,
@@ -82,6 +84,12 @@ public class UDPMessageHandler implements Runnable {
 				break;
 			case SERVER_CLIENT_LOGOUT:
 				this.logoutClient(message);
+				break;
+			case SERVER_CLIENT_REAUTHENTICATE:
+				this.reauthenticate(message);
+				break;
+			case SERVER_CLIENT_PING_RESPONSE:
+				this.serverPingResponse(message);
 				break;
 			default:
 				try {
@@ -191,6 +199,12 @@ public class UDPMessageHandler implements Runnable {
 			sendMessage(HeaderHandler.pack(responseToServer),
 					MessageType.CLIENT_SERVER_VERIFY);
 			this.client.clientInfo.setIsLoggedIn(true);
+			
+			pinger = new PingAction(this.client.clientInfo);
+			
+			pingerThread = (new Thread (pinger));
+			pingerThread.start();
+			
 			/*
 			 * Start a thread for handling the commands list , logout, send
 			 * <message>
@@ -216,8 +230,7 @@ public class UDPMessageHandler implements Runnable {
 
 			if (TimestampManager.verifyTimestamp(params.get(1))) {
 				System.out.println(params.get(0));
-			}
-			else {
+			} else {
 				System.out.println("Time stamp not verified");
 				return;
 			}
@@ -262,7 +275,7 @@ public class UDPMessageHandler implements Runnable {
 
 			ticketToPeer = talkResponse.get(4);
 
-			if(!TimestampManager.verifyTimestamp(talkResponse.get(5))){
+			if (!TimestampManager.verifyTimestamp(talkResponse.get(5))) {
 				System.out
 						.println("Ticket Response received from server is not verified");
 				return;
@@ -314,7 +327,7 @@ public class UDPMessageHandler implements Runnable {
 	}
 
 	private void p2pCommunicationBegin(String message) {
-		
+
 		final ArrayList<String> response = HeaderHandler.unpack(message);
 		String ticket = null;
 		String helloMessage = null;
@@ -441,9 +454,11 @@ public class UDPMessageHandler implements Runnable {
 
 		sendMessage(HeaderHandler.pack(helloResponse),
 				MessageType.CLIENT_CLIENT_HELLO_RESPONSE);
-		
-		PeerConnection peerConnection = new PeerConnection(this.client, peerInfo);
-		this.client.clientListener.addAwaitingConnection(peerInfo.getPeerUserId(), peerConnection);
+
+		PeerConnection peerConnection = new PeerConnection(this.client,
+				peerInfo);
+		this.client.clientListener.addAwaitingConnection(
+				peerInfo.getPeerUserId(), peerConnection);
 		peerInfo.setPeerConnection(peerConnection);
 	}
 
@@ -494,19 +509,21 @@ public class UDPMessageHandler implements Runnable {
 
 		sendMessage(HeaderHandler.pack(response),
 				MessageType.CLIENT_CLIENT_MUTH_AUTH);
-		
+
 		Socket peerSocket = null;
 		try {
-			peerSocket = new Socket(peerInfo.getPeerIp(), peerInfo.getPeerPort());
+			peerSocket = new Socket(peerInfo.getPeerIp(),
+					peerInfo.getPeerPort());
 			PeerConnection peerConnection = null;
-			if(peerSocket != null){
+			if (peerSocket != null) {
 				peerConnection = new PeerConnection(this.client, peerInfo);
 			}
-			
+
 			peerInfo.setPeerConnection(peerConnection);
 			peerConnection.setSocket(peerSocket);
-			peerConnection.sendMessage(this.client.pendingMessages.get(peerInfo.getPeerUsername()));
-			
+			peerConnection.sendMessage(this.client.pendingMessages.get(peerInfo
+					.getPeerUsername()));
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -547,5 +564,43 @@ public class UDPMessageHandler implements Runnable {
 			return;
 		}
 		this.client.logout();
+	}
+
+	private void reauthenticate(String message) {
+		if (!this.client.clientInfo.getConnectionInfo().getServerIp()
+				.getHostAddress().equals(this.destinationIp.getHostAddress())
+				|| this.client.clientInfo.getConnectionInfo().getServerPort() != this.destinationPort) {
+			return;
+		}
+		
+		System.out.println("Reauthenticating, please repeat command.");
+		pingerThread.interrupt();
+		try {
+			this.client.clientInfo.loginPrompt(false);
+		} catch (Exception e) {
+			System.err.println("Failed to re-authenticate...");
+		}
+	}
+
+	private void serverPingResponse(String message) {
+		String decryptedMessage;
+		try {
+			decryptedMessage = 
+				CryptoLibrary.aesDecrypt(client.clientInfo.getSecretKey(), message);
+		} catch (DecryptionException e) {
+			System.out.println("Error decrypting pong");
+			e.printStackTrace();
+			return;
+		}
+		
+		ArrayList<String> params = 
+				HeaderHandler.unpack(decryptedMessage);
+			
+			if (Long.valueOf(params.get(1)) != pinger.getPingTime() + 1) {
+				System.out.println("Outdated pong received");
+				return;
+			}
+			
+			pinger.recievedPong();
 	}
 }

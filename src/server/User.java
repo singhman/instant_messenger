@@ -12,6 +12,7 @@ public class User {
 	private int userPort;
 	private InetAddress userIp;
 	private SecretKey sessionKey;
+	private long lastPinged;
 	
 	/* Constructor */
 	public User(String username, String validationHash) {
@@ -40,6 +41,10 @@ public class User {
 		this.sessionKey = key;
 	}
 	
+	public void setLastPinged(long lastPinged){
+		this.lastPinged = lastPinged;
+	}
+	
 	/* getters */
 	public String getUsername(){
 		return this.username;
@@ -63,6 +68,10 @@ public class User {
 	
 	public SecretKey getSessionKey(){
 		return this.sessionKey;
+	}
+	
+	public long getLastPinged(){
+		return this.lastPinged;
 	}
 	
 	public void destroySessionKey(){

@@ -26,7 +26,7 @@ import common.CryptoLibrary.KeyCreationException;
 import common.MessageType.UnsupportedMessageTypeException;
 
 public class MessageHandler implements Runnable {
-	
+
 	private Server server;
 	private String message;
 	private InetAddress clientIp;
@@ -77,6 +77,9 @@ public class MessageHandler implements Runnable {
 				break;
 			case CLIENT_SERVER_LOGOUT:
 				this.logoutUser(message);
+				break;
+			case CLIENT_SERVER_PING:
+				this.clientPing(message);
 				break;
 			default:
 				break;
@@ -153,18 +156,18 @@ public class MessageHandler implements Runnable {
 		final String clientNonce = decryptedList.get(3);
 
 		final String username = decryptedList.get(0);
-		
+
 		if (!this.server.isRegistered(username)) {
 			System.out.println(username + " is not resgistered");
 			return;
 		}
 
-		if (this.server.isOnline(username)) {
+		if (this.server.onlineUsers.isOnline(username)) {
 			System.out.println(username + " is already online");
 			return;
 		}
 
-		final User user = this.server.getUser(username);
+		final User user = this.server.getRegisteredUser(username);
 
 		String validationHash = CryptoLibrary
 				.generateValidationHash(decryptedList.get(1));
@@ -174,9 +177,8 @@ public class MessageHandler implements Runnable {
 			return;
 		}
 
-		if (this.server.isAlreadyOnline(clientPort, clientIp)) {
-			System.out
-					.println("Client already online: Same port and IP address");
+		if (this.server.onlineUsers.isOnline(clientPort, clientIp)) {
+			System.out.println("Client is online: Same port and IP address");
 			return;
 		}
 
@@ -202,7 +204,7 @@ public class MessageHandler implements Runnable {
 		if (priorId != null) {
 			this.server.logoutUser(priorId);
 		}
-		
+
 		final UUID userId = UUID.randomUUID();
 		user.setUserId(userId);
 		String encryptedResponse = null;
@@ -258,7 +260,7 @@ public class MessageHandler implements Runnable {
 		final ArrayList<String> responseReceived = HeaderHandler
 				.unpack(message);
 		UUID userId = UUID.fromString(responseReceived.get(0));
-		User user = this.server.getRegisteredUserByUUID(userId);
+		User user = this.server.getRegisteredUser(userId);
 		if (user == null) {
 			System.out.println("User doesn't exist with UserId " + userId);
 		}
@@ -285,7 +287,7 @@ public class MessageHandler implements Runnable {
 
 	private void listLoggedInUsers(String message) {
 		final ArrayList<String> listRequest = HeaderHandler.unpack(message);
-		User user = this.server.getOnlineUserByUUID(UUID.fromString(listRequest
+		User user = this.server.onlineUsers.getUser(UUID.fromString(listRequest
 				.get(0)));
 
 		if (user == null) {
@@ -314,7 +316,7 @@ public class MessageHandler implements Runnable {
 		}
 
 		final String[] returnParams = new String[2];
-		returnParams[0] = server.getUserList();
+		returnParams[0] = this.server.onlineUsers.getUsers();
 		returnParams[1] = String.valueOf(timestamp + 1);
 
 		String encryptedReturn;
@@ -332,7 +334,7 @@ public class MessageHandler implements Runnable {
 
 	private void ticketToUser(String message) {
 		final ArrayList<String> talkRequest = HeaderHandler.unpack(message);
-		User from = this.server.getOnlineUserByUUID(UUID.fromString(talkRequest
+		User from = this.server.onlineUsers.getUser(UUID.fromString(talkRequest
 				.get(0)));
 
 		if (from == null) {
@@ -368,7 +370,7 @@ public class MessageHandler implements Runnable {
 				return;
 			}
 
-			to = this.server.getOnlineUser(decryptedParams.get(1));
+			to = this.server.onlineUsers.getUser(decryptedParams.get(1));
 			if (to == null) {
 				System.out.println(decryptedParams.get(1) + " is not online");
 				return;
@@ -382,17 +384,15 @@ public class MessageHandler implements Runnable {
 				e.printStackTrace();
 			}
 
-			String[] ticket = TicketManager.getTicket(
-					from.getUsername(), to.getUsername(),
-					from.getUserId(), tempSessionKey);
+			String[] ticket = TicketManager.getTicket(from.getUsername(),
+					to.getUsername(), from.getUserId(), tempSessionKey);
 			String[] talkResponse = new String[7];
 			talkResponse[0] = to.getUsername();
 			talkResponse[1] = to.getUserIp().getHostAddress();
 			talkResponse[2] = String.valueOf(to.getUserPort());
 			talkResponse[3] = new String(tempSessionKey.getEncoded(),
 					CryptoLibrary.CHARSET);
-			talkResponse[4] = CryptoLibrary.aesEncrypt(
-					to.getSessionKey(),
+			talkResponse[4] = CryptoLibrary.aesEncrypt(to.getSessionKey(),
 					HeaderHandler.pack(ticket));
 			talkResponse[5] = String.valueOf(timestamp + 1);
 			talkResponse[6] = to.getUserId().toString();
@@ -411,7 +411,7 @@ public class MessageHandler implements Runnable {
 		final ArrayList<String> ResponseReceived = HeaderHandler
 				.unpack(message);
 		UUID userId = UUID.fromString(ResponseReceived.get(0));
-		User user = this.server.getOnlineUserByUUID(userId);
+		User user = this.server.onlineUsers.getUser(userId);
 		if (user == null) {
 			System.out.println("User is not online");
 			return;
@@ -448,7 +448,58 @@ public class MessageHandler implements Runnable {
 
 		sendMessage(encryptedResponse, MessageType.SERVER_CLIENT_LOGOUT);
 
-		this.server.destroySessionKey(userId);
 		this.server.logoutUser(userId);
+	}
+
+	/* Handle a client ping response */
+	public void clientPing(String message) {
+		final ArrayList<String> params = HeaderHandler.unpack(message);
+		final User user = server.getOnlineUser(UUID.fromString(params.get(0)));
+
+		if (user == null) {
+			sendMessage("", MessageType.SERVER_CLIENT_REAUTHENTICATE);
+			return;
+		}
+
+		System.out.println("Ping received from " + user.getUsername());
+
+		String decryptedMessage;
+		try {
+			decryptedMessage = CryptoLibrary.aesDecrypt(user.getSessionKey(),
+					params.get(1));
+		} catch (DecryptionException e) {
+			System.out.println("Error decrypting ping");
+			e.printStackTrace();
+			return;
+		}
+
+		final ArrayList<String> pingParams = HeaderHandler
+				.unpack(decryptedMessage);
+		final Long timestamp = Long.valueOf(pingParams.get(1));
+		final Long currentTime = System.currentTimeMillis();
+
+		if (Math.abs(timestamp - currentTime) >= 1 * 60 * 1000) {
+			System.out.println("Expired timestamp in ping");
+			return;
+		}
+
+		user.setLastPinged(currentTime);
+
+		final String[] pongParams = new String[2];
+		pongParams[0] = "PONG";
+		pongParams[1] = String.valueOf(timestamp + 1);
+		
+		String response;
+		try {
+			response = CryptoLibrary.aesEncrypt(
+				user.getSessionKey(), HeaderHandler.pack(pongParams)
+			);
+		} catch (EncryptionException e) {
+			System.out.println("Error encrypting pong");
+			e.printStackTrace();
+			return;
+		}
+		
+		sendMessage(response, MessageType.SERVER_CLIENT_PING_RESPONSE);
 	}
 }

@@ -91,6 +91,7 @@ public class PeerConnection implements Runnable{
 				new BigInteger(MessageType.CLIENT_CLIENT_MESSAGE.createMessage(response).getBytes(CryptoLibrary.CHARSET))
 			);
 			out.write(string + "\n");
+			/* If received an exception here, means user is not online anymore */
 			out.flush();
 		}
 		} catch(Exception e){

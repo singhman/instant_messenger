@@ -29,7 +29,8 @@ public class ClientInfo {
 	private boolean isLoogedIn = false;
 
 	public ClientInfo(ClientConfigReader config) {
-		this.connectionInfo = new ConnectionInfo(config.getPort(), config.getServerAddress(), config.getServerPort());
+		this.connectionInfo = new ConnectionInfo(config.getPort(),
+				config.getServerAddress(), config.getServerPort());
 		this.setServerPublicKey(getServerPublicKeyFromFile(config));
 	}
 
@@ -58,16 +59,16 @@ public class ClientInfo {
 	public void setServerPublicKey(PublicKey key) {
 		this.serverPublicKey = key;
 	}
-	
-	public void setdhKeyPair(KeyPair dhKeyPair){
+
+	public void setdhKeyPair(KeyPair dhKeyPair) {
 		this.dhKeyPair = dhKeyPair;
 	}
-	
-	public void setSecretKey(SecretKey key){
+
+	public void setSecretKey(SecretKey key) {
 		this.secretKey = key;
 	}
-	
-	public void setIsLoggedIn(boolean value){
+
+	public void setIsLoggedIn(boolean value) {
 		this.isLoogedIn = value;
 	}
 
@@ -83,58 +84,62 @@ public class ClientInfo {
 	public UUID getUserId() {
 		return this.userId;
 	}
-	
-	public ConnectionInfo getConnectionInfo(){
+
+	public ConnectionInfo getConnectionInfo() {
 		return this.connectionInfo;
 	}
 
 	public PublicKey getServerPublicKey() {
 		return this.serverPublicKey;
 	}
-	
-	public KeyPair getDHKeyPair(){
+
+	public KeyPair getDHKeyPair() {
 		return this.dhKeyPair;
 	}
-	
-	public SecretKey getSecretKey(){
+
+	public SecretKey getSecretKey() {
 		return this.secretKey;
 	}
-	
-	public boolean isLoggedIn(){
+
+	public boolean isLoggedIn() {
 		return this.isLoogedIn;
 	}
 
 	/* methods */
-	public void loginPrompt() throws Exception {
-		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
-		System.out.print("Username: ");
-		try {
-			this.setUsername(in.readLine().trim());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	public void loginPrompt(boolean useConsole) throws Exception {
+		if (useConsole) {
+			BufferedReader in = new BufferedReader(new InputStreamReader(
+					System.in));
+			System.out.print("Username: ");
+			try {
+				this.setUsername(in.readLine().trim());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 
-		System.out.print("Password: ");
-		try {
-			this.setPassword(in.readLine().trim());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.print("Password: ");
+			try {
+				this.setPassword(in.readLine().trim());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			try {
+				this.connectionInfo.setClientSocket(new DatagramSocket(this
+						.getConnectionInfo().getClientPort()));
+			} catch (SocketException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				return;
+			}
 		}
+		
 		this.sendHelloToServer();
 	}
-	
-	public void sendHelloToServer() throws Exception{
-		try {
-			this.connectionInfo.setClientSocket(new DatagramSocket(this
-					.getConnectionInfo().getClientPort()));
-		} catch (SocketException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			return;
-		}
 
+	public void sendHelloToServer() throws Exception {
 		String message = MessageType.CLIENT_SERVER_HELLO.createMessage("HELLO");
 		byte[] messageBytes = null;
 		try {
@@ -157,7 +162,7 @@ public class ClientInfo {
 			return;
 		}
 	}
-	
+
 	/* Send a message to given ip and port */
 	public void sendMessage(String message, MessageType messageType,
 			InetAddress destIp, int destPort) {
@@ -182,8 +187,8 @@ public class ClientInfo {
 			return;
 		}
 	}
-	
-	public void destoryKeys(){
+
+	public void destoryKeys() {
 		this.setdhKeyPair(null);
 		this.setSecretKey(null);
 		this.setUserId(null);
