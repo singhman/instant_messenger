@@ -122,7 +122,12 @@ public class CommandHandler implements Runnable {
 			return;
 		}
 		if (this.client.peers.isExist(peername)) {
-			this.client.sendMessage(peername, message);
+			PeerInfo peerInfo = this.client.peers.getPeerByUserName(peername);
+			if(peerInfo == null){
+				return;
+			}
+			peerInfo.getPeerConnection().sendMessage(message);
+			
 		} else {
 			String[] talkRequest = new String[2];
 			talkRequest[0] = String.valueOf(this.client.clientInfo.getUserId());

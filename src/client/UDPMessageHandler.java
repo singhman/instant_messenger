@@ -1,7 +1,9 @@
 package client;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.security.KeyPair;
 import java.security.PrivateKey;
@@ -18,12 +20,11 @@ import common.NonceManager;
 import common.TimestampManager;
 import common.CryptoLibrary.DecryptionException;
 import common.CryptoLibrary.EncryptionException;
-import common.CryptoLibrary.HmacException;
 import common.CryptoLibrary.KeyCreationException;
 import common.MessageType.UnsupportedMessageTypeException;
 
 
-public class MessageHandler implements Runnable {
+public class UDPMessageHandler implements Runnable {
 
 	private String message;
 	private Client client;
@@ -31,7 +32,7 @@ public class MessageHandler implements Runnable {
 	private InetAddress destinationIp;
 
 	/* Constructor */
-	public MessageHandler(Client client, String message,
+	public UDPMessageHandler(Client client, String message,
 			InetAddress destinationIp, int destinationPort) {
 		this.client = client;
 		this.message = message;
@@ -59,7 +60,7 @@ public class MessageHandler implements Runnable {
 
 			switch (type) {
 			case SERVER_CLIENT_COOKIE:
-				this.authenticationBegin(message);
+				this.authenticationBeginWithServer(message);
 				break;
 			case SERVER_CLIENT_AUTH:
 				this.authenticationCompleteWithServer(message);
@@ -68,7 +69,7 @@ public class MessageHandler implements Runnable {
 				this.displayUsersList(message);
 				break;
 			case SERVER_CLIENT_TICKET:
-				this.ticketToUser(message);
+				this.forwardTicketToPeer(message);
 				break;
 			case CLIENT_CLIENT_HELLO:
 				this.p2pCommunicationBegin(message);
@@ -78,9 +79,6 @@ public class MessageHandler implements Runnable {
 				break;
 			case CLIENT_CLIENT_MUTH_AUTH:
 				this.authenticationCompleteWithClient(message);
-				break;
-			case CLIENT_CLIENT_MESSAGE:
-				this.communicate(message);
 				break;
 			case SERVER_CLIENT_LOGOUT:
 				this.logoutClient(message);
@@ -108,7 +106,7 @@ public class MessageHandler implements Runnable {
 				destPort);
 	}
 
-	private void authenticationBegin(String message) {
+	private void authenticationBeginWithServer(String message) {
 		String[] authRequest = new String[4];
 
 		final long nonce = NonceManager.generateNonce();
@@ -229,7 +227,7 @@ public class MessageHandler implements Runnable {
 		}
 	}
 
-	private void ticketToUser(String message) {
+	private void forwardTicketToPeer(String message) {
 		PeerInfo peerInfo = null;
 		String ticketToPeer = null;
 
@@ -316,6 +314,7 @@ public class MessageHandler implements Runnable {
 	}
 
 	private void p2pCommunicationBegin(String message) {
+		
 		final ArrayList<String> response = HeaderHandler.unpack(message);
 		String ticket = null;
 		String helloMessage = null;
@@ -442,6 +441,10 @@ public class MessageHandler implements Runnable {
 
 		sendMessage(HeaderHandler.pack(helloResponse),
 				MessageType.CLIENT_CLIENT_HELLO_RESPONSE);
+		
+		PeerConnection peerConnection = new PeerConnection(this.client, peerInfo);
+		this.client.clientListener.addAwaitingConnection(peerInfo.getPeerUserId(), peerConnection);
+		peerInfo.setPeerConnection(peerConnection);
 	}
 
 	private void p2pauthentication(String message) {
@@ -491,8 +494,23 @@ public class MessageHandler implements Runnable {
 
 		sendMessage(HeaderHandler.pack(response),
 				MessageType.CLIENT_CLIENT_MUTH_AUTH);
-		this.client.sendMessage(peerInfo.getPeerUsername(),
-				this.client.pendingMessages.get(peerInfo.getPeerUsername()));
+		
+		Socket peerSocket = null;
+		try {
+			peerSocket = new Socket(peerInfo.getPeerIp(), peerInfo.getPeerPort());
+			PeerConnection peerConnection = null;
+			if(peerSocket != null){
+				peerConnection = new PeerConnection(this.client, peerInfo);
+			}
+			
+			peerInfo.setPeerConnection(peerConnection);
+			peerConnection.setSocket(peerSocket);
+			peerConnection.sendMessage(this.client.pendingMessages.get(peerInfo.getPeerUsername()));
+			
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	private void authenticationCompleteWithClient(String message) {
@@ -511,42 +529,6 @@ public class MessageHandler implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-
-	private void communicate(String message) {
-
-		final ArrayList<String> responseParams = HeaderHandler.unpack(message);
-		PeerInfo peerInfo = this.client.peers.getPeer(UUID
-				.fromString(responseParams.get(0)));
-		String content;
-
-		try {
-			content = CryptoLibrary.hmacVerify(peerInfo.getSecretKey(),
-					responseParams.get(1));
-		} catch (HmacException e) {
-			e.printStackTrace();
-			return;
-		}
-
-		try {
-			content = CryptoLibrary
-					.aesDecrypt(peerInfo.getSecretKey(), content);
-		} catch (DecryptionException e) {
-			return;
-		}
-
-		final ArrayList<String> decryptedMessage = HeaderHandler
-				.unpack(content);
-
-		long timestamp = Long.valueOf(decryptedMessage.get(1));
-
-		if (TimestampManager.isExpired(timestamp)) {
-			System.out.println("Message Expired");
-			return;
-		}
-
-		System.out.println(peerInfo.getPeerUsername() + ": "
-				+ decryptedMessage.get(0));
 	}
 
 	private void logoutClient(String message) {

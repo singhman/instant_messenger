@@ -26,7 +26,7 @@ import common.CryptoLibrary.KeyCreationException;
 import common.MessageType.UnsupportedMessageTypeException;
 
 public class MessageHandler implements Runnable {
-
+	
 	private Server server;
 	private String message;
 	private InetAddress clientIp;
@@ -153,23 +153,18 @@ public class MessageHandler implements Runnable {
 		final String clientNonce = decryptedList.get(3);
 
 		final String username = decryptedList.get(0);
-
+		
 		if (!this.server.isRegistered(username)) {
-			System.out.println("User not resgistered");
+			System.out.println(username + " is not resgistered");
 			return;
 		}
 
 		if (this.server.isOnline(username)) {
-			System.out.println("User already online");
+			System.out.println(username + " is already online");
 			return;
 		}
 
 		final User user = this.server.getUser(username);
-
-		if (user == null) {
-			System.out.println("Unknown username: " + decryptedList.get(0));
-			return;
-		}
 
 		String validationHash = CryptoLibrary
 				.generateValidationHash(decryptedList.get(1));
@@ -182,6 +177,7 @@ public class MessageHandler implements Runnable {
 		if (this.server.isAlreadyOnline(clientPort, clientIp)) {
 			System.out
 					.println("Client already online: Same port and IP address");
+			return;
 		}
 
 		PublicKey publicKey = null;
@@ -202,6 +198,11 @@ public class MessageHandler implements Runnable {
 			return;
 		}
 
+		UUID priorId = user.getUserId();
+		if (priorId != null) {
+			this.server.logoutUser(priorId);
+		}
+		
 		final UUID userId = UUID.randomUUID();
 		user.setUserId(userId);
 		String encryptedResponse = null;

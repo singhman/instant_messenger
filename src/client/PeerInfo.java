@@ -15,16 +15,23 @@ public class PeerInfo {
 	private SecretKey secretKey;
 	private String pendingMessage;
 	
+	private PeerConnection peerConnection;
+
 	/* Constructor */
 	public PeerInfo(String username, InetAddress peerIp, int peerPort,UUID userId, SecretKey tempKey){
 		this.username = username;
 		this.peerIp = peerIp;
 		this.peerPort = peerPort;
+		this.peerUserId = userId;
 		this.tempSessionKey = tempKey;
 	}
 	
 	public void setSecretKey(SecretKey key){
 		this.secretKey = key;
+	}
+	
+	public void setPeerConnection(PeerConnection peerConnection){
+		this.peerConnection = peerConnection;
 	}
 	
 	/* getters */
@@ -50,6 +57,10 @@ public class PeerInfo {
 	
 	public SecretKey getSecretKey(){
 		return this.secretKey;
+	}
+	
+	public PeerConnection getPeerConnection(){
+		return this.peerConnection;
 	}
 	
 	public String getPendingMessage(){

@@ -14,6 +14,7 @@ import common.CryptoLibrary.HmacException;
 public class Client {
 
 	public ClientInfo clientInfo = null;
+	public ClientListener clientListener = null;
 	public Peers peers = new Peers();
 	public HashMap<String, String> pendingMessages = new HashMap<String, String>();
 	public boolean running = true;
@@ -47,7 +48,12 @@ public class Client {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		
+		/* Listen for TCP Connections */
+		this.clientListener = new ClientListener(this.clientInfo.getConnectionInfo().getClientPort());
+		(new Thread(this.clientListener)).start();
+		
+		/* Listens for UDP Packets */
 		recieveMessage();
 	}
 
@@ -64,7 +70,7 @@ public class Client {
 				this.clientInfo.getConnectionInfo().getClientSocket().receive(packet);
 				String received = new String(packet.getData(),0, packet.getLength(),CryptoLibrary.CHARSET);
 				
-				MessageHandler handler = new MessageHandler(this, received, packet.getAddress(), packet.getPort());
+				UDPMessageHandler handler = new UDPMessageHandler(this, received, packet.getAddress(), packet.getPort());
 				(new Thread(handler)).start();
 			}
 		}catch(Exception e){

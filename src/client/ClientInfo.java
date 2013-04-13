@@ -17,7 +17,6 @@ import javax.crypto.SecretKey;
 import common.CryptoLibrary;
 import common.MessageType;
 
-
 public class ClientInfo {
 
 	private String username;
@@ -110,7 +109,7 @@ public class ClientInfo {
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		System.out.print("Username: ");
 		try {
-			this.setUsername(in.readLine());
+			this.setUsername(in.readLine().trim());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -118,7 +117,7 @@ public class ClientInfo {
 
 		System.out.print("Password: ");
 		try {
-			this.setPassword(in.readLine());
+			this.setPassword(in.readLine().trim());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

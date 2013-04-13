@@ -19,7 +19,7 @@ public class Server {
 	public final HashMap<String, User> registeredUsers = new HashMap<String, User>();
 	public final HashMap<UUID, User> onlineUsers = new HashMap<UUID, User>();
 
-	/**
+	/*
 	 * Entry point of the server
 	 * 
 	 * @param args
