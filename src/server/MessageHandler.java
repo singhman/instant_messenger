@@ -268,7 +268,7 @@ public class MessageHandler implements Runnable {
 			long nonce = Long.valueOf(CryptoLibrary.aesDecrypt(
 					user.getSessionKey(), responseReceived.get(1)));
 			if (NonceManager.verifyNonce(nonce)) {
-				System.out.println("Authentication Complete");
+				System.out.println(user.getUsername() + " logged in");
 			} else {
 				System.out.println("Authentication Incomplete: Wrong Nonce");
 				return;

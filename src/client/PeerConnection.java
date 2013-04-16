@@ -48,7 +48,7 @@ public class PeerConnection implements Runnable{
 	
 	public void sendMessage(String message) {
 		
-		if (this.peerInfo == null) {
+		if (this.peerInfo == null || ! this.client.peers.isExist(this.peerInfo.getPeerUsername())) {
 			System.out.println(peerInfo.getPeerUsername() + "is not online anymore");
 			return;
 		}

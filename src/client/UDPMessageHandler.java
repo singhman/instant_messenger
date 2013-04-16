@@ -540,8 +540,8 @@ public class UDPMessageHandler implements Runnable {
 		try {
 			String decryptedNonce = CryptoLibrary.aesDecrypt(
 					peerInfo.getSecretKey(), responseReceived.get(1));
-			if (NonceManager.verifyNonce(Long.valueOf(decryptedNonce))) {
-				System.out.println(peerInfo.getPeerUsername() + " logged in");
+			if (!NonceManager.verifyNonce(Long.valueOf(decryptedNonce))) {
+				System.out.println("Authentication not complete: Nonce wrong");
 			}
 		} catch (DecryptionException e) {
 			// TODO Auto-generated catch block
