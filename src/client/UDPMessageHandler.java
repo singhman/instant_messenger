@@ -29,7 +29,7 @@ public class UDPMessageHandler implements Runnable {
 	private Client client;
 	private int destinationPort;
 	private InetAddress destinationIp;
-	
+
 	private static PingAction pinger;
 	private static Thread pingerThread;
 
@@ -150,6 +150,7 @@ public class UDPMessageHandler implements Runnable {
 		} catch (Exception e) {
 			System.out.println("Unable to send authentication packet");
 			e.printStackTrace();
+			return;
 		}
 	}
 
@@ -199,12 +200,12 @@ public class UDPMessageHandler implements Runnable {
 			sendMessage(HeaderHandler.pack(responseToServer),
 					MessageType.CLIENT_SERVER_VERIFY);
 			this.client.clientInfo.setIsLoggedIn(true);
-			
+
 			pinger = new PingAction(this.client.clientInfo);
-			
-			pingerThread = (new Thread (pinger));
+
+			pingerThread = (new Thread(pinger));
 			pingerThread.start();
-			
+
 			/*
 			 * Start a thread for handling the commands list , logout, send
 			 * <message>
@@ -540,7 +541,7 @@ public class UDPMessageHandler implements Runnable {
 			String decryptedNonce = CryptoLibrary.aesDecrypt(
 					peerInfo.getSecretKey(), responseReceived.get(1));
 			if (NonceManager.verifyNonce(Long.valueOf(decryptedNonce))) {
-				System.out.println("Authentication Complete");
+				System.out.println(peerInfo.getPeerUsername() + " logged in");
 			}
 		} catch (DecryptionException e) {
 			// TODO Auto-generated catch block
@@ -572,7 +573,7 @@ public class UDPMessageHandler implements Runnable {
 				|| this.client.clientInfo.getConnectionInfo().getServerPort() != this.destinationPort) {
 			return;
 		}
-		
+
 		System.out.println("Reauthenticating, please repeat command.");
 		pingerThread.interrupt();
 		try {
@@ -585,22 +586,24 @@ public class UDPMessageHandler implements Runnable {
 	private void serverPingResponse(String message) {
 		String decryptedMessage;
 		try {
-			decryptedMessage = 
-				CryptoLibrary.aesDecrypt(client.clientInfo.getSecretKey(), message);
+			decryptedMessage = CryptoLibrary.aesDecrypt(
+					client.clientInfo.getSecretKey(), message);
 		} catch (DecryptionException e) {
 			System.out.println("Error decrypting pong");
 			e.printStackTrace();
 			return;
 		}
-		
-		ArrayList<String> params = 
-				HeaderHandler.unpack(decryptedMessage);
-			
-			if (Long.valueOf(params.get(1)) != pinger.getPingTime() + 1) {
-				System.out.println("Outdated pong received");
-				return;
-			}
-			
-			pinger.recievedPong();
+
+		ArrayList<String> params = HeaderHandler.unpack(decryptedMessage);
+
+		if(pinger == null){
+			return;
+		}
+		if (Long.valueOf(params.get(1)) != pinger.getPingTime() + 1) {
+			System.out.println("Outdated ping received from server");
+			return;
+		}
+
+		pinger.recievedPong();
 	}
 }

@@ -452,7 +452,7 @@ public class MessageHandler implements Runnable {
 	}
 
 	/* Handle a client ping response */
-	public void clientPing(String message) {
+	private void clientPing(String message) {
 		final ArrayList<String> params = HeaderHandler.unpack(message);
 		final User user = server.getOnlineUser(UUID.fromString(params.get(0)));
 
@@ -460,8 +460,6 @@ public class MessageHandler implements Runnable {
 			sendMessage("", MessageType.SERVER_CLIENT_REAUTHENTICATE);
 			return;
 		}
-
-		System.out.println("Ping received from " + user.getUsername());
 
 		String decryptedMessage;
 		try {
@@ -478,7 +476,7 @@ public class MessageHandler implements Runnable {
 		final Long timestamp = Long.valueOf(pingParams.get(1));
 		final Long currentTime = System.currentTimeMillis();
 
-		if (Math.abs(timestamp - currentTime) >= 1 * 60 * 1000) {
+		if (Math.abs(timestamp - currentTime) >= 3 * 60 * 1000) {
 			System.out.println("Expired timestamp in ping");
 			return;
 		}

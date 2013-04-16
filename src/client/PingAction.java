@@ -16,7 +16,7 @@ import common.MessageType;
  * from the server.
  */
 public class PingAction extends Action {
-	private static long PING_JOB_INTERVAL = 2 * 60 * 1000; // 2 minutes
+	private static long PING_JOB_INTERVAL = 3 * 60 * 1000; // 3 minutes
 	private boolean receivedPong = false;
 	private ClientInfo clientInfo;
 	private Long pingTime;
@@ -47,7 +47,7 @@ public class PingAction extends Action {
 		try {
 			while (!this.receivedPong) {
 				sendPing();
-				Thread.sleep(10 * 1000);
+				Thread.sleep(100 * 1000);
 			}
 		} catch (InterruptedException e) {
 		}

@@ -95,7 +95,6 @@ public class ClientListener implements Runnable {
 						PeerConnection connection = removeAwaitingConnection(peerId);
 						
 						if (connection != null) {
-							//client.addOpenConnection(connection);
 							connection.setSocket(clientSocket);
 							connection.receiveMessage(message);
 						}

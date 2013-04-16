@@ -17,7 +17,7 @@ public class OnlineUsers {
 	 * out.  Note that due to the way this job is run, a user can potentially
 	 * be logged in for twice this time.
 	 */
-	public static final int LOGOUT_USER_JOB_INTERVAL = 3 * 60 * 1000; // 3 minutes
+	public static final int LOGOUT_USER_JOB_INTERVAL = 10 * 60 * 1000; // 10 minutes
 	
 	private final ConcurrentHashMap<UUID, User> users = 
 		new ConcurrentHashMap<UUID, User>();
@@ -148,14 +148,14 @@ public class OnlineUsers {
 			super(LOGOUT_USER_JOB_INTERVAL, users);
 		}
 		@Override
-		protected boolean isPrunable(User object, long pruneBefore){
-			final boolean logout = object.getLastPinged() <= pruneBefore;
+		protected boolean isPrunable(User user, long pruneBefore){
+			final boolean logout = user.getLastPinged() <= pruneBefore;
 			
 			if(logout){
-				object.setLastPinged(-1);
-				object.destroySessionKey();
-				object.setUserId(null);
-				System.out.println("Logged out " + object.getUsername() + 
+				user.setLastPinged(-1);
+				user.destroySessionKey();
+				user.setUserId(null);
+				System.out.println("Logged out " + user.getUsername() + 
 						" for expired ping");
 					regenerateCache = true;
 			}

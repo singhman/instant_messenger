@@ -13,6 +13,10 @@ public class Peers {
 		this.peers.put(userId, peerInfo);
 	}
 	
+	public void removePeer(UUID userId){
+		this.peers.remove(userId);
+	}
+	
 	public void clear(){
 		this.peers.clear();
 	}

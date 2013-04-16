@@ -86,19 +86,13 @@ public class CryptoLibrary {
 
 	/*
 	 * Generate the validation hash for a given password.
-	 * 
 	 * @param password The password to generate a validation hash for.
-	 * 
 	 * @return The validation hash for the given password.
 	 */
 	public static String generateValidationHash(String password) {
-		final Random rand = new Random(password.hashCode());
-
-		// not that we convert everything to a hex string just to make
-		// the config file writing easy
 		try {
 			return String.format("%x",
-					new BigInteger(hash(String.valueOf(rand.nextLong()))
+					new BigInteger(hash(password+hash(password))
 							.getBytes(CryptoLibrary.CHARSET)));
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
@@ -108,9 +102,7 @@ public class CryptoLibrary {
 
 	/*
 	 * Hash the given value using the SHA-1 hash function.
-	 * 
 	 * @param value The value to hash
-	 * 
 	 * @return The hashed version of value.
 	 */
 	public static String hash(String value) {

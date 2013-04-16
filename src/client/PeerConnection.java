@@ -95,7 +95,16 @@ public class PeerConnection implements Runnable{
 			out.flush();
 		}
 		} catch(Exception e){
-			e.printStackTrace();
+			System.out.println(peerInfo.getPeerUsername() + " is not online anymore");
+			peerInfo.destroy();
+			this.client.peers.removePeer(peerInfo.getPeerUserId());
+			try {
+				out.close();
+				this.peerSocket.close();
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
 		}
 	}
 	

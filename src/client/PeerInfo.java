@@ -66,4 +66,9 @@ public class PeerInfo {
 	public String getPendingMessage(){
 		return this.pendingMessage;
 	}
+	
+	public void destroy(){
+		this.secretKey = null;
+		this.peerUserId = null;
+	}
 }
