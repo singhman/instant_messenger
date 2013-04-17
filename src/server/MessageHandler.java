@@ -119,7 +119,8 @@ public class MessageHandler implements Runnable {
 					String.valueOf(CookieManager.generateCookie(this.clientIp)),
 					MessageType.SERVER_CLIENT_COOKIE);
 		} catch (Exception e) {
-			System.out.println("Exception:" + e);
+			System.out.println("Exception:" + e.toString());
+			return;
 		}
 	}
 
@@ -381,6 +382,7 @@ public class MessageHandler implements Runnable {
 			} catch (KeyCreationException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				return;
 			}
 
 			String[] ticket = TicketManager.getTicket(from.getUsername(),
@@ -423,6 +425,7 @@ public class MessageHandler implements Runnable {
 		} catch (DecryptionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return;
 		}
 
 		final ArrayList<String> logoutParams = HeaderHandler
@@ -475,7 +478,7 @@ public class MessageHandler implements Runnable {
 		final Long timestamp = Long.valueOf(pingParams.get(1));
 		final Long currentTime = System.currentTimeMillis();
 
-		if (Math.abs(timestamp - currentTime) >= 3 * 60 * 1000) {
+		if (Math.abs(timestamp - currentTime) >= 2 * 60 * 1000) {
 			System.out.println("Expired timestamp in ping");
 			return;
 		}

@@ -101,11 +101,14 @@ public class PeerConnection implements Runnable{
 			this.client.peers.removePeer(peerInfo.getPeerUserId());
 			this.peerInfo.destroy();
 			try {
-				out.close();
-				this.peerSocket.close();
+				if(this.out != null && this.peerSocket != null){
+					out.close();
+					this.peerSocket.close();
+				}
 			} catch (IOException e1) {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
+				return;
 			}
 		}
 	}
@@ -123,7 +126,12 @@ public class PeerConnection implements Runnable{
 					(new Thread(new TCPMessageHandler(message, this.client))).start();
 				}
 			}
-		
+			System.out.println(this.peerInfo.getPeerUsername() + " logged out");
+			this.client.peers.removePeer(peerInfo.getPeerUserId());
+			this.peerInfo.destroy();
+			this.peerSocket.close();
+			in.close();
+			out.close();
 		} catch (Exception e) {
 			
 		}

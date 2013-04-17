@@ -4,7 +4,7 @@ import java.util.ArrayList;
 
 /* Manages all the timestamp included inside the messages */
 public class TimestampManager {
-	private static final int TIMESTAMP_LIMIT = 1 * 60 * 1000;
+	private static final int TIMESTAMP_LIMIT = 60 * 1000;
 	public static ArrayList<Long> timestamps = new ArrayList<Long>(); 
 	
 	public static long getTimestamp(){

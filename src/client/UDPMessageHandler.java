@@ -510,6 +510,7 @@ public class UDPMessageHandler implements Runnable {
 		} catch (EncryptionException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			return;
 		}
 
 		sendMessage(HeaderHandler.pack(response),
@@ -517,6 +518,7 @@ public class UDPMessageHandler implements Runnable {
 
 		Socket peerSocket = null;
 		try {
+
 			peerSocket = new Socket(peerInfo.getPeerIp(),
 					peerInfo.getPeerPort());
 			PeerConnection peerConnection = null;
@@ -531,7 +533,11 @@ public class UDPMessageHandler implements Runnable {
 
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			System.out.println("Reason: Peer is behind the NAT."
+					+ " Please run either every client having static ip on different machines or"
+					+ " run all the clients on same machine");
+			System.out.println(e.toString());
+			return;
 		}
 	}
 

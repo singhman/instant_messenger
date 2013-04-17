@@ -71,8 +71,7 @@ public class CommandHandler implements Runnable {
 				if (argsStrings[0].toUpperCase().equals(
 						CommandType.SEND.toString())) {
 					this.sendMessage(argsStrings[1], argsStrings[2]);
-				}
-				else{
+				} else {
 					this.usage();
 				}
 			} else {
@@ -99,7 +98,8 @@ public class CommandHandler implements Runnable {
 		encryptedMessage[1] = String.valueOf(TimestampManager.getTimestamp());
 
 		try {
-			message[1] = CryptoLibrary.aesEncrypt(this.client.clientInfo.getSecretKey(),
+			message[1] = CryptoLibrary.aesEncrypt(
+					this.client.clientInfo.getSecretKey(),
 					HeaderHandler.pack(encryptedMessage));
 
 			// Send List Command
@@ -113,9 +113,9 @@ public class CommandHandler implements Runnable {
 	}
 
 	private void sendMessage(String message, MessageType messageType) {
-		this.client.clientInfo.sendMessage(message, messageType, this.client
-				.clientInfo.getConnectionInfo().getServerIp(), this.client
-				.clientInfo.getConnectionInfo().getServerPort());
+		this.client.clientInfo.sendMessage(message, messageType,
+				this.client.clientInfo.getConnectionInfo().getServerIp(),
+				this.client.clientInfo.getConnectionInfo().getServerPort());
 	}
 
 	private void sendMessage(String peername, String message) {
@@ -128,8 +128,14 @@ public class CommandHandler implements Runnable {
 			if(peerInfo == null){
 				return;
 			}
-			peerInfo.getPeerConnection().sendMessage(message);
-			
+			try{
+				if(peerInfo.getPeerConnection() != null){
+					peerInfo.getPeerConnection().sendMessage(message);
+				}
+			} catch(Exception e){
+				System.out.println("Unable to send message");
+				System.out.println(e.toString());
+			}
 		} else {
 			String[] talkRequest = new String[2];
 			talkRequest[0] = String.valueOf(this.client.clientInfo.getUserId());
@@ -153,16 +159,17 @@ public class CommandHandler implements Runnable {
 			this.client.pendingMessages.put(peername, message);
 		}
 	}
-	
-	private void logout(){
+
+	private void logout() {
 		String[] message = new String[2];
 		message[0] = this.client.clientInfo.getUserId().toString();
 		String[] encryptedMessage = new String[2];
 		encryptedMessage[0] = "LOGOUT";
 
 		encryptedMessage[1] = String.valueOf(TimestampManager.getTimestamp());
-		try{
-			message[1] = CryptoLibrary.aesEncrypt(this.client.clientInfo.getSecretKey(),
+		try {
+			message[1] = CryptoLibrary.aesEncrypt(
+					this.client.clientInfo.getSecretKey(),
 					HeaderHandler.pack(encryptedMessage));
 
 			// Send List Command

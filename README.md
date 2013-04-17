@@ -39,6 +39,14 @@ Useful Information:
 -cp directory: Specify the classpath, where to search for the files.
 package.MainClass -> java package.MainClass to excute and javac to compile.
 
+Registered Users:
+Usernames	Password
+user1		password1
+user2		password2
+user3		password3
+user4		password4
+user5		password5
+
 Contact us at:
-Mandeep Singh: singman@husky.neu.edu
+Mandeep Singh: singh.man@husky.neu.edu
 Srivatsa Srivatsa: srivatsa@ccs.neu.edu
