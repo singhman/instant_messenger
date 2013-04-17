@@ -25,6 +25,9 @@ import common.CryptoLibrary.EncryptionException;
 import common.CryptoLibrary.KeyCreationException;
 import common.MessageType.UnsupportedMessageTypeException;
 
+/* Handles all the UDP messages received by the server
+ * All communication between client and server is UDP
+ */
 public class MessageHandler implements Runnable {
 
 	private Server server;
@@ -167,7 +170,7 @@ public class MessageHandler implements Runnable {
 			return;
 		}
 
-		final User user = this.server.getRegisteredUser(username);
+		final UserInfo user = this.server.getRegisteredUser(username);
 
 		String validationHash = CryptoLibrary
 				.generateValidationHash(decryptedList.get(1));
@@ -235,10 +238,6 @@ public class MessageHandler implements Runnable {
 					CryptoLibrary.CHARSET);
 			responseParams[0] = dhpublicKey;
 
-			/*
-			 * signing the decoded gs mod p string so at the time of
-			 * verification, need to verify with the decoded string.
-			 */
 			responseParams[1] = new String(CryptoLibrary.sign(
 					server.serverInfo.getServerPrivateKey(), dhpublicKey),
 					CryptoLibrary.CHARSET);
@@ -260,7 +259,7 @@ public class MessageHandler implements Runnable {
 		final ArrayList<String> responseReceived = HeaderHandler
 				.unpack(message);
 		UUID userId = UUID.fromString(responseReceived.get(0));
-		User user = this.server.getRegisteredUser(userId);
+		UserInfo user = this.server.getRegisteredUser(userId);
 		if (user == null) {
 			System.out.println("User doesn't exist with UserId " + userId);
 		}
@@ -281,13 +280,13 @@ public class MessageHandler implements Runnable {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-
+		user.setLastPinged(System.currentTimeMillis());
 		this.server.loginUser(userId, user);
 	}
 
 	private void listLoggedInUsers(String message) {
 		final ArrayList<String> listRequest = HeaderHandler.unpack(message);
-		User user = this.server.onlineUsers.getUser(UUID.fromString(listRequest
+		UserInfo user = this.server.onlineUsers.getUser(UUID.fromString(listRequest
 				.get(0)));
 
 		if (user == null) {
@@ -334,7 +333,7 @@ public class MessageHandler implements Runnable {
 
 	private void ticketToUser(String message) {
 		final ArrayList<String> talkRequest = HeaderHandler.unpack(message);
-		User from = this.server.onlineUsers.getUser(UUID.fromString(talkRequest
+		UserInfo from = this.server.onlineUsers.getUser(UUID.fromString(talkRequest
 				.get(0)));
 
 		if (from == null) {
@@ -361,7 +360,7 @@ public class MessageHandler implements Runnable {
 			return;
 		}
 
-		User to = null;
+		UserInfo to = null;
 
 		try {
 			String toUserName = decryptedParams.get(1);
@@ -411,7 +410,7 @@ public class MessageHandler implements Runnable {
 		final ArrayList<String> ResponseReceived = HeaderHandler
 				.unpack(message);
 		UUID userId = UUID.fromString(ResponseReceived.get(0));
-		User user = this.server.onlineUsers.getUser(userId);
+		UserInfo user = this.server.onlineUsers.getUser(userId);
 		if (user == null) {
 			System.out.println("User is not online");
 			return;
@@ -447,14 +446,14 @@ public class MessageHandler implements Runnable {
 		}
 
 		sendMessage(encryptedResponse, MessageType.SERVER_CLIENT_LOGOUT);
-
+		System.out.println(user.getUsername() + " logged out");
 		this.server.logoutUser(userId);
 	}
 
 	/* Handle a client ping response */
 	private void clientPing(String message) {
 		final ArrayList<String> params = HeaderHandler.unpack(message);
-		final User user = server.getOnlineUser(UUID.fromString(params.get(0)));
+		final UserInfo user = server.getOnlineUser(UUID.fromString(params.get(0)));
 
 		if (user == null) {
 			sendMessage("", MessageType.SERVER_CLIENT_REAUTHENTICATE);
@@ -482,22 +481,7 @@ public class MessageHandler implements Runnable {
 		}
 
 		user.setLastPinged(currentTime);
-
-		final String[] pongParams = new String[2];
-		pongParams[0] = "PONG";
-		pongParams[1] = String.valueOf(timestamp + 1);
 		
-		String response;
-		try {
-			response = CryptoLibrary.aesEncrypt(
-				user.getSessionKey(), HeaderHandler.pack(pongParams)
-			);
-		} catch (EncryptionException e) {
-			System.out.println("Error encrypting pong");
-			e.printStackTrace();
-			return;
-		}
-		
-		sendMessage(response, MessageType.SERVER_CLIENT_PING_RESPONSE);
+		sendMessage("", MessageType.SERVER_CLIENT_PING_RESPONSE);
 	}
 }

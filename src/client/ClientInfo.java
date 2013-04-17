@@ -17,6 +17,9 @@ import javax.crypto.SecretKey;
 import common.CryptoLibrary;
 import common.MessageType;
 
+/* Information about the client, contains key info, 
+ * connection info, userId, username and password
+ */
 public class ClientInfo {
 
 	private String username;

@@ -9,18 +9,19 @@ import java.util.Iterator;
 
 import common.PruneAction;
 
+/* Users currently logged in onto the server and logout users
+ * who haven't pinged the server in last 10 minutes*/
 public class OnlineUsers {
 	/*
 	 * The interval in milliseconds in which the job to prune logged in users
 	 * is run. If a user has not pinged the server within the last
 	 * <code>LOGOUT_USER_JOB_INTERVAL</code> milliseconds they will be logged 
-	 * out.  Note that due to the way this job is run, a user can potentially
-	 * be logged in for twice this time.
+	 * out.
 	 */
 	public static final int LOGOUT_USER_JOB_INTERVAL = 10 * 60 * 1000; // 10 minutes
 	
-	private final ConcurrentHashMap<UUID, User> users = 
-		new ConcurrentHashMap<UUID, User>();
+	private final ConcurrentHashMap<UUID, UserInfo> users = 
+		new ConcurrentHashMap<UUID, UserInfo>();
 	private String userListCache = "";
 	private static boolean regenerateCache = false;
 	
@@ -47,7 +48,7 @@ public class OnlineUsers {
 			return false;
 		}
 		
-		for (User user : this.users.values()) {
+		for (UserInfo user : this.users.values()) {
 			if (user.getUsername().equals(username)) {
 				return true;
 			}
@@ -60,7 +61,7 @@ public class OnlineUsers {
 			return false;
 		}
 		
-		for (User user : this.users.values()) {
+		for (UserInfo user : this.users.values()) {
 			if (user.getUserPort() == port && user.getUserIp().equals(ip)) {
 				return true;
 			}
@@ -68,16 +69,16 @@ public class OnlineUsers {
 		return false;
 	}
 	
-	public User getUser(UUID userId){
+	public UserInfo getUser(UUID userId){
 		return users.get(userId);
 	}
 	
-	public User getUser(String userName){
+	public UserInfo getUser(String userName){
 		if(this.users == null){
 			return null;
 		}
 		
-		for (User user : this.users.values()) {
+		for (UserInfo user : this.users.values()) {
 			if (user.getUsername().equals(userName)) {
 				return user;
 			}
@@ -86,7 +87,7 @@ public class OnlineUsers {
 		return null;
 	}
 	
-	public void addUser(UUID userId, User user){
+	public void addUser(UUID userId, UserInfo user){
 		if(userId == null){
 			throw new IllegalArgumentException("id not set on user");
 		}
@@ -100,7 +101,7 @@ public class OnlineUsers {
 	}
 	
 	public void removeUser(UUID id){
-		User user = null;
+		UserInfo user = null;
 		synchronized (users) {	
 			if(!users.contains(id)){
 				user = users.remove(id);
@@ -118,7 +119,7 @@ public class OnlineUsers {
 		final StringBuilder userList = new StringBuilder();
 		final ArrayList<String> usernames = new ArrayList<String>();
 		
-		for(User user: users.values()){
+		for(UserInfo user: users.values()){
 			usernames.add(user.getUsername());
 		}
 		
@@ -138,17 +139,15 @@ public class OnlineUsers {
 	
 	/*
 	 * Job to logout users who haven't pinged the server in the last
-	 * <code>LoggedInUsers.LOGOUT_USER_JOB_INTERVAL</code> milliseconds.
-	 * 
-	 * @see LoggedInUsers#LOGOUT_USER_JOB_INTERVAL
+	 * <code>LoggedInUsers.LOGOUT_USER_JOB_INTERVAL</code> 10 minutes.
 	 */
-	private class LogoutUserJob extends PruneAction<UUID, User> {
+	private class LogoutUserJob extends PruneAction<UUID, UserInfo> {
 		
 		public LogoutUserJob(){
 			super(LOGOUT_USER_JOB_INTERVAL, users);
 		}
 		@Override
-		protected boolean isPrunable(User user, long pruneBefore){
+		protected boolean isPrunable(UserInfo user, long pruneBefore){
 			final boolean logout = user.getLastPinged() <= pruneBefore;
 			
 			if(logout){

@@ -3,10 +3,11 @@ package client;
 import java.util.HashMap;
 import java.util.UUID;
 
+/* Peers are the online users and share the
+ * secret key with client.
+ */
 public class Peers {
-	/* Peers are those with whom current client had
-	 * already set up a key 
-	 */
+	
 	public HashMap<UUID,PeerInfo> peers = new HashMap<UUID, PeerInfo>();
 	
 	public void addPeer(UUID userId, PeerInfo peerInfo){

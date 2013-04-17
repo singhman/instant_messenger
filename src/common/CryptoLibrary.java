@@ -30,6 +30,10 @@ import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+/* This library handles the encryption, decryption,
+ * digital signatures, hash, and diffie hellman key
+ * generation, password hash generation.
+ */
 public class CryptoLibrary {
 
 	public static final String CHARSET = "ISO-8859-1";
@@ -118,14 +122,10 @@ public class CryptoLibrary {
 	
 	/*
 	 * Create an HMAC signature for the given message with the given key.
-	 * 
 	 * @param key The key to use in the HMAC.
-	 * 
-	 * @param msg The message to create an HMAC for.
-	 * 
+	 * @param message The message to create an HMAC for.
 	 * @return The message appended with the HMAC using 
 	 * <code>HeaderHandler</code>.
-	 * 
 	 * @throws HmacException Thrown for all errors.
 	 */
 	public static String hmacCreate(SecretKey key, String message) 
@@ -139,15 +139,11 @@ public class CryptoLibrary {
 	/*
 	 * Verify that the given HMAC is correct for the given message using
 	 * the given key.
-	 * 
 	 * @param key The key to verify the HMAC with.
-	 * 
-	 * @param msg The message to verify the HMAC for.  This should be
+	 * @param message The message to verify the HMAC for.  This should be
 	 * a string created by <code>HeaderHandler</code> that contains
 	 * the message as the first parameter and the HMAC as the second.
-	 * 
 	 * @return The contents of the message without the HMAC appended.
-	 * 
 	 * @throws HmacException Thrown for all errors or if the HMAC is invalid.
 	 */
 	public static String hmacVerify(SecretKey key, String message) 
@@ -175,13 +171,9 @@ public class CryptoLibrary {
 
 	/*
 	 * Generate an HMAC for the given message.
-	 * 
 	 * @param key The key to generate the HMAC.
-	 * 
 	 * @param msg The message to generate the HMAC for.
-	 * 
 	 * @return The HMAC.
-	 * 
 	 * @throws HmacException Thrown for all errors.
 	 */
 	public static String hmacGenerate(SecretKey key, String msg)
@@ -200,13 +192,9 @@ public class CryptoLibrary {
 
 	/*
 	 * Encrypt a message with RSA encryption.
-	 * 
 	 * @param key The public key used to encrypt the message.
-	 * 
 	 * @param msg The message to encrypt.
-	 * 
 	 * @return The given message encrypted with the given key.
-	 * 
 	 * @throws EncryptionException Thrown for all errors.
 	 */
 	public static String rsaEncrypt(PublicKey key, String msg)
@@ -224,13 +212,9 @@ public class CryptoLibrary {
 
 	/*
 	 * Decrypt a message with the RSA algorithm.
-	 * 
 	 * @param key The private key to decrypt the message with.
-	 * 
 	 * @param msg The message to decrypt.
-	 * 
 	 * @return The decrypted version of the given message using the given key.
-	 * 
 	 * @throws DecryptionException Thrown for all errors.
 	 */
 	public static String rsaDecrypt(PrivateKey key, String msg)
@@ -261,7 +245,7 @@ public class CryptoLibrary {
 	 */
 	public static boolean verify(PublicKey publicKey,
 			String input, byte[] sigBytes) throws Exception {
-		Signature signature = Signature.getInstance("SHA1withRSA");
+		Signature signature = Signature.getInstance(RSA_SHA_CIPHER);
 		
 		signature.initVerify(publicKey);
 		signature.update(input.getBytes());
@@ -274,7 +258,6 @@ public class CryptoLibrary {
 
 	/*
 	 * Generate a random byte array to use as an initialization vector.
-	 * 
 	 * @return The initialization vector in byte array format.
 	 */
 	private static byte[] generateInitVector() {
@@ -287,9 +270,7 @@ public class CryptoLibrary {
 
 	/*
 	 * Generate an AES key.
-	 * 
 	 * @return The newly generated AES key.
-	 * 
 	 * @throws KeyCreationException Thrown for all errors.
 	 */
 	public static SecretKeySpec aesGenerateKey() throws KeyCreationException {
@@ -305,11 +286,8 @@ public class CryptoLibrary {
 
 	/*
 	 * Create an AES key from the given byte array.
-	 * 
 	 * @param key The byte array representing the key.
-	 * 
 	 * @return The key created from the given byte array.
-	 * 
 	 * @throws KeyCreationException Thrown for all errors.
 	 */
 	public static SecretKeySpec aesCreateKey(byte[] key)
@@ -323,14 +301,10 @@ public class CryptoLibrary {
 
 	/*
 	 * Encrypt the given message using the AES algorithm.
-	 * 
 	 * @param key The secret key.
-	 * 
 	 * @param msg The message to encrypt.
-	 * 
 	 * @return The 256 bit initialization variable appended to the encrypted
 	 * message.
-	 * 
 	 * @throws EncryptionException Thrown for all errors.
 	 */
 	public static String aesEncrypt(SecretKey key, String msg)
@@ -354,13 +328,9 @@ public class CryptoLibrary {
 
 	/*
 	 * Decrypt the given message using the AES algorithm.
-	 * 
 	 * @param key The secret key.
-	 * 
 	 * @param msg The 256 bit initialization variable appended to the message.
-	 * 
 	 * @return The decrypted message.
-	 * 
 	 * @throws DecryptionException Thrown for all errors.
 	 */
 	public static String aesDecrypt(SecretKey key, String msg)
@@ -384,9 +354,7 @@ public class CryptoLibrary {
 
 	/*
 	 * Generate a diffie-hellman key pair.
-	 * 
 	 * @return The generated key pair.
-	 * 
 	 * @throws KeyCreationException Thrown for all errors.
 	 */
 	public static KeyPair dhGenerateKeyPair() throws KeyCreationException {
@@ -404,13 +372,9 @@ public class CryptoLibrary {
 
 	/*
 	 * Generate a secret key using diffie-hellman.
-	 * 
 	 * @param privateKey The private key for the diffie-hellman algorithm.
-	 * 
 	 * @param publicKeyBytes The byte array representing the public key.
-	 * 
 	 * @return The secret key generated.
-	 * 
 	 * @throws KeyCreationException Thrown for all errors.
 	 */
 	public static SecretKey dhGenerateSecretKey(PrivateKey privateKey,
@@ -433,11 +397,8 @@ public class CryptoLibrary {
 
 	/*
 	 * Read a private key in from the file at the given location.
-	 * 
 	 * @param filename The location of the private key
-	 * 
 	 * @return The private key.
-	 * 
 	 * @throws Exception Thrown for all errors.
 	 */
 	public static PrivateKey readPrivateKey(String filename) throws Exception {
@@ -458,11 +419,8 @@ public class CryptoLibrary {
 
 	/*
 	 * Read a public key in from the file at the given location.
-	 * 
 	 * @param filename The location of the public key.
-	 * 
 	 * @return The public key.
-	 * 
 	 * @throws Exception Thrown for all errors.
 	 */
 	public static PublicKey readPublicKey(String filename) throws Exception {

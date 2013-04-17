@@ -11,6 +11,9 @@ import common.CryptoLibrary.DecryptionException;
 import common.CryptoLibrary.HmacException;
 import common.MessageType.UnsupportedMessageTypeException;
 
+/* Handles the TCP messages between the client and peer 
+ * Send encrypted messages and verify incoming messages
+ */
 public class TCPMessageHandler implements Runnable {
 
 	private String message;

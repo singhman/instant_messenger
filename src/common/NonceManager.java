@@ -4,6 +4,7 @@ import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.Random;
 
+/* Manages the nonces for both server and client */
 public class NonceManager {
 	private static HashSet<Nonce> nonces = new HashSet<Nonce>();
 

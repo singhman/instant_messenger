@@ -23,6 +23,12 @@ import common.CryptoLibrary.EncryptionException;
 import common.CryptoLibrary.KeyCreationException;
 import common.MessageType.UnsupportedMessageTypeException;
 
+/* UDPMessageHandler handles the udp messages received 
+ * from the server and other peers.
+ * Communication between client and server is always UDP
+ * Key Setup between client and client is UDP but 
+ * communication is TCP.
+ */
 public class UDPMessageHandler implements Runnable {
 
 	private String message;
@@ -158,22 +164,20 @@ public class UDPMessageHandler implements Runnable {
 		ArrayList<String> response = HeaderHandler.unpack(message);
 
 		try {
+			
 			byte[] publicExp = response.get(0).getBytes(CryptoLibrary.CHARSET);
 			this.client.clientInfo.setSecretKey(CryptoLibrary
 					.dhGenerateSecretKey(this.client.clientInfo.getDHKeyPair()
 							.getPrivate(), publicExp));
 			byte[] signedResponse = response.get(1).getBytes(
 					CryptoLibrary.CHARSET);
-
+			
 			/*
 			 * Verify decoded string received, not with the encoded bytes
 			 */
 			if (CryptoLibrary.verify(
 					this.client.clientInfo.getServerPublicKey(),
 					response.get(0), signedResponse)) {
-			} else {
-				System.out.println("Signature not verified");
-				return;
 			}
 
 			final ArrayList<String> decodedParams = HeaderHandler
@@ -574,7 +578,7 @@ public class UDPMessageHandler implements Runnable {
 			return;
 		}
 
-		System.out.println("Reauthenticating, please repeat command.");
+		System.out.println("Reauthenticating " + this.client.clientInfo.getUserName());
 		pingerThread.interrupt();
 		try {
 			this.client.clientInfo.loginPrompt(false);
@@ -583,27 +587,10 @@ public class UDPMessageHandler implements Runnable {
 		}
 	}
 
-	private void serverPingResponse(String message) {
-		String decryptedMessage;
-		try {
-			decryptedMessage = CryptoLibrary.aesDecrypt(
-					client.clientInfo.getSecretKey(), message);
-		} catch (DecryptionException e) {
-			System.out.println("Error decrypting pong");
-			e.printStackTrace();
-			return;
-		}
-
-		ArrayList<String> params = HeaderHandler.unpack(decryptedMessage);
-
+	private void serverPingResponse(String message) {	
 		if(pinger == null){
 			return;
 		}
-		if (Long.valueOf(params.get(1)) != pinger.getPingTime() + 1) {
-			System.out.println("Outdated ping received from server");
-			return;
-		}
-
 		pinger.recievedPong();
 	}
 }

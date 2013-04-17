@@ -2,6 +2,9 @@ package common;
 
 import java.util.ArrayList;
 
+/* Handles the header of messages, prefix the message lengths 
+ * to message and unwrap the incoming messages.
+ */
 public final class HeaderHandler {
 	
 	/* Pack the content with header in format 

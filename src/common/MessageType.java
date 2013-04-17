@@ -1,5 +1,8 @@
 package common;
 
+/* Types of messages exchanged between client 
+ * and server, client and client.
+ */
 public enum MessageType{
 	
 	CLIENT_SERVER_HELLO("00"),

@@ -10,7 +10,9 @@ import common.HeaderHandler;
 import common.MessageType;
 import common.TimestampManager;
 
-
+/* Command handler handles the commands on the interface
+ * Commands used : list, send <user> <message>, logout
+ */
 public class CommandHandler implements Runnable {
 
 	private Client client;

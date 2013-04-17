@@ -1,5 +1,8 @@
 package common;
 
+/* Abstract Action class denotes a action that must
+ * be performed with actionInterval frequency.
+ */
 public abstract class Action implements Runnable {
 
 	/* frequency at which action run in millisecond */
@@ -17,7 +20,6 @@ public abstract class Action implements Runnable {
 				performAction();
 			}
 		} catch (Exception e) {
-			// TODO: don't do anything
 		}
 	}
 

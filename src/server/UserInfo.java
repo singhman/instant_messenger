@@ -5,7 +5,8 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-public class User {
+/* User information , connection info, key info */
+public class UserInfo {
 	private String username;
 	private String passwordHash;
 	private UUID userId;
@@ -15,7 +16,7 @@ public class User {
 	private long lastPinged;
 	
 	/* Constructor */
-	public User(String username, String validationHash) {
+	public UserInfo(String username, String validationHash) {
 		this.username = username;
 		this.passwordHash = validationHash;
 	}

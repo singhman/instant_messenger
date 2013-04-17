@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.HashMap;
 
+/* Abstract config reader for reading the configuration files */
 public abstract class ConfigReader {
 
 	private static BufferedReader input;
@@ -11,15 +12,9 @@ public abstract class ConfigReader {
 	/*
 	 * Parse the file at the given location using the given actions to process
 	 * each entry.
-	 * 
-	 * @param configActions
-	 *            The actions to perform for each entry.
-	 * 
-	 * @param filename
-	 *            The location of the file to parse.
-	 * 
-	 * @throws ConfigReaderException
-	 *             Thrown for all errors.
+	 * @param configActions The actions to perform for each entry.
+	 * @param filename The location of the file to parse.
+	 * @throws ConfigReaderException Thrown for all errors.
 	 */
 	public static void parseFile(ConfigEntryAction[] configActions,
 			String filename) throws ConfigReaderException {
@@ -60,32 +55,16 @@ public abstract class ConfigReader {
 		
 		private final String actionId;
 		
-		/*
-		 * Get the string that identifies this action.
-		 * 
-		 * @return The string that identifies this action.
-		 */
 		public String getActionId() {
 			return actionId;
 		}
 
-		/*
-		 * @param id
-		 *            The string that identifies this action.
-		 */
 		public ConfigEntryAction(String id) {
 			actionId = id;
 		}
 
 		/*
-		 * Peform the action for a given entry in the config file.
-		 * 
-		 * @param value
-		 *            The value of the config property.
-		 * 
-		 * @throws ConfigReaderException
-		 *             Thrown for all errors.
-		 */
+		 * Peform the action for a given entry in the config file. */
 		public abstract void performAction(String value)
 				throws ConfigReaderException;
 	}

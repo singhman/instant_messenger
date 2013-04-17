@@ -6,7 +6,9 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-
+/* Handles the Ticket for the server and client, generates a ticket 
+ * for server and verify the incoming ticket for client.
+ */
 public class TicketManager {
 	
 	private static final int TIMESTAMP_LIMIT = 1 * 60 * 1000;

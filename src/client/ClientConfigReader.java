@@ -17,9 +17,7 @@ public class ClientConfigReader extends ConfigReader {
 	
 	/*
 	 * Parse the config file in the given location.
-	 * 
 	 * @param filename The location of the config file to parse.
-	 * 
 	 * @throws ConfigReaderException Thrown for all errors.
 	 */
 	public ClientConfigReader(String filename)

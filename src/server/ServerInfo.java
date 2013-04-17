@@ -2,8 +2,9 @@ package server;
 
 import java.security.PrivateKey;
 
+/* Server information , port and key info */
 public class ServerInfo {
-	/* Server Info */
+	
 	private int serverPort;
 	private PrivateKey privateKey;
 	

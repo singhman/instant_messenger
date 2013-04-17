@@ -5,7 +5,8 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
-/* Peer is another client basically */
+/* Peer is another client basically, peerinfo keeps
+ * the information about peer, key info , connection info */
 public class PeerInfo {
 	private String username;
 	private SecretKey tempSessionKey;

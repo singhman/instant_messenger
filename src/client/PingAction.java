@@ -12,7 +12,7 @@ import common.MessageType;
 
 /*
  * A recurring job that sends a ping to the server every interval, and
- * continues to send on every two minutes if no response is received
+ * continues to send on every three minutes if no response is received
  * from the server.
  */
 public class PingAction extends Action {
@@ -47,7 +47,7 @@ public class PingAction extends Action {
 		try {
 			while (!this.receivedPong) {
 				sendPing();
-				Thread.sleep(100 * 1000);
+				Thread.sleep(30 * 1000);
 			}
 		} catch (InterruptedException e) {
 		}

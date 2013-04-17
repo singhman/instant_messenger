@@ -14,6 +14,10 @@ import common.CryptoLibrary.EncryptionException;
 import common.CryptoLibrary.HmacException;
 import common.MessageType;
 
+/* PeerConnection handler the TCP connection between the client and
+ * its peer. Reads and write to the steam and handle received 
+ * messages to TCPHandler
+ */
 public class PeerConnection implements Runnable{
 	
 	private Client client;
@@ -48,8 +52,8 @@ public class PeerConnection implements Runnable{
 	
 	public void sendMessage(String message) {
 		
-		if (this.peerInfo == null || ! this.client.peers.isExist(this.peerInfo.getPeerUsername())) {
-			System.out.println(peerInfo.getPeerUsername() + "is not online anymore");
+		if (this.peerInfo == null || !this.client.peers.isExist(this.peerInfo.getPeerUsername())) {
+			System.out.println(peerInfo.getPeerUsername() + "is not online");
 			return;
 		}
 		
@@ -79,7 +83,6 @@ public class PeerConnection implements Runnable{
 			e.printStackTrace();
 			return;
 		}
-		
 		messageParams[1] = hMac;
 		
 		String response = HeaderHandler.pack(messageParams);
@@ -91,13 +94,12 @@ public class PeerConnection implements Runnable{
 				new BigInteger(MessageType.CLIENT_CLIENT_MESSAGE.createMessage(response).getBytes(CryptoLibrary.CHARSET))
 			);
 			out.write(string + "\n");
-			/* If received an exception here, means user is not online anymore */
 			out.flush();
 		}
 		} catch(Exception e){
 			System.out.println(peerInfo.getPeerUsername() + " is not online anymore");
-			peerInfo.destroy();
 			this.client.peers.removePeer(peerInfo.getPeerUserId());
+			this.peerInfo.destroy();
 			try {
 				out.close();
 				this.peerSocket.close();

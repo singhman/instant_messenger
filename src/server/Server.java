@@ -8,26 +8,28 @@ import java.util.UUID;
 import common.CryptoLibrary;
 import common.ConfigReader.ConfigReaderException;
 
-
+/* Server contains information about all the registered users,
+ * online users, and server information.
+ */
 public class Server {
 
 	public ServerInfo serverInfo = null;
-	public final HashMap<String, User> registeredUsers = new HashMap<String, User>();
+	public final HashMap<String, UserInfo> registeredUsers = new HashMap<String, UserInfo>();
 	public OnlineUsers onlineUsers = new OnlineUsers();
+	
+	public static int serverPort = 0;
 
 	/*
-	 * Entry point of the server
-	 * 
-	 * @param args
+	 * Entry point or main method of the server
 	 */
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
 		String configFile = "src/resources/server.cfg";
-		if (args.length == 1) {
-			configFile = args[0];
+		
+		if(args.length == 1){
+			serverPort = Integer.parseInt(args[0]);
 		}
-
 		final Server server = new Server(configFile);
 
 		server.run();
@@ -54,12 +56,16 @@ public class Server {
 					CryptoLibrary
 							.readPrivateKey(serverConfig.privateKeyLocation),
 					serverConfig.port);
+			if(serverPort != 0){
+				this.serverInfo.setServerPort(serverPort);
+			}
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
 		}
 
-		for (final User user : serverConfig.users) {
+		for (final UserInfo user : serverConfig.users) {
 			registeredUsers.put(user.getUsername(), user);
 		}
 	}
@@ -98,7 +104,7 @@ public class Server {
 		}
 	}
 
-	public User getRegisteredUser(String userName) {
+	public UserInfo getRegisteredUser(String userName) {
 		if(this.registeredUsers == null){
 			return null;
 		}
@@ -113,12 +119,12 @@ public class Server {
 		return this.registeredUsers.containsKey(userName);
 	}
 
-	public User getRegisteredUser(UUID userId) {
+	public UserInfo getRegisteredUser(UUID userId) {
 		if(this.registeredUsers == null){
 			return null;
 		}
 		
-		for (User user : this.registeredUsers.values()) {
+		for (UserInfo user : this.registeredUsers.values()) {
 			if (user.getUserId() != null) {
 				if (user.getUserId().equals(userId)) {
 					return user;
@@ -128,7 +134,7 @@ public class Server {
 		return null;
 	}
 	
-	public void loginUser(UUID userId, User user){
+	public void loginUser(UUID userId, UserInfo user){
 		this.onlineUsers.addUser(userId, user);
 	}
 	
@@ -136,12 +142,12 @@ public class Server {
 		this.onlineUsers.removeUser(userId);
 	}
 	
-	public User getOnlineUser(UUID userId){
+	public UserInfo getOnlineUser(UUID userId){
 		return this.onlineUsers.getUser(userId);
 	}
 	
 	public void destroySessionKey(UUID userId){
-		User user = this.onlineUsers.getUser(userId);
+		UserInfo user = this.onlineUsers.getUser(userId);
 		if(user != null){
 			user.destroySessionKey();
 			return;

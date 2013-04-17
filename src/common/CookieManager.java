@@ -4,10 +4,13 @@ import java.net.InetAddress;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
+/* Manages the cookies for the server.
+ * Cookie is pseudo random number
+ */
 public class CookieManager {
 
 	/*
-	 * The interval in milliseconds for the cookie pruning job to run. Cookies
+	 * The interval in minutes for the cookie pruning job to run. Cookies
 	 * will live for at least this amount of time and at most for twice this
 	 * amount of time.
 	 */

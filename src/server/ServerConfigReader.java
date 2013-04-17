@@ -2,11 +2,11 @@ package server;
 
 import java.util.ArrayList;
 
-import server.User;
+import server.UserInfo;
 
 import common.ConfigReader;
 
-
+/* Congiruation reader for reading the server config file */
 public class ServerConfigReader extends ConfigReader {
 	
 	 /* The port the server will listen on */
@@ -15,15 +15,12 @@ public class ServerConfigReader extends ConfigReader {
 	/*The location of the server's private key. */
 	public String privateKeyLocation;
 	
-	/*The list of users.
-	 */
-	public ArrayList<User> users = new ArrayList<User>();
+	/*The list of users.*/
+	public ArrayList<UserInfo> users = new ArrayList<UserInfo>();
 	
 	/*
 	 * Parse the config file of the given name.
-	 * 
 	 * @param filename The filename of the config file to parse.
-	 * 
 	 * @throws ConfigReaderException Thrown for all errors.
 	 */
 	public ServerConfigReader(String filename)
@@ -53,7 +50,7 @@ public class ServerConfigReader extends ConfigReader {
 		@Override
 		public void performAction(String value) {
 			String params[] = value.split(":", 2);
-			users.add(new User(params[0], params[1]));
+			users.add(new UserInfo(params[0], params[1]));
 		}
 	}
 	

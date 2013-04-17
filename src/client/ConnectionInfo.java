@@ -3,6 +3,9 @@ package client;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
+/* ConnectionInfo keeps the socket and ip information
+ * for the connection between client and server
+ */
 public class ConnectionInfo {
 	
 	private DatagramSocket clientSocket;

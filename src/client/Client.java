@@ -1,16 +1,15 @@
 package client;
 
 import java.net.DatagramPacket;
+import java.net.InetAddress;
 import java.util.HashMap;
 
 import common.CryptoLibrary;
-import common.HeaderHandler;
-import common.MessageType;
 import common.ConfigReader.ConfigReaderException;
-import common.CryptoLibrary.EncryptionException;
-import common.CryptoLibrary.HmacException;
 
-
+/* Handles the client, contains clientInfo, peers connected to client,
+ * and receiving UDP packets and UDPMessageHandler handles those packets 
+ */
 public class Client {
 
 	public ClientInfo clientInfo = null;
@@ -18,6 +17,10 @@ public class Client {
 	public Peers peers = new Peers();
 	public HashMap<String, String> pendingMessages = new HashMap<String, String>();
 	public boolean running = true;
+	
+	private static InetAddress serverIP = null;
+	private static int clientPort = 0;
+	private static int serverPort = 0;
 
 	/* starting point of the client */
 	public static void main(String[] args) throws Exception {
@@ -25,8 +28,19 @@ public class Client {
 		
 		Client client = new Client();
 		String configFile = "src/resources/client.cfg";
+		
+		if(args.length == 3){
+			clientPort = Integer.parseInt(args[0]);
+			serverIP = InetAddress.getByName(args[1]);
+			serverPort = Integer.parseInt(args[2]);
+		}
+		
+		if (args.length == 2) {
+			clientPort = Integer.parseInt(args[0]);
+			serverIP = InetAddress.getByName(args[1]);
+		}
 		if (args.length == 1) {
-			configFile = args[0];
+			clientPort = Integer.parseInt(args[0]);
 		}
 		client.loadClientInfofromConfigFile(configFile);
 	}
@@ -42,6 +56,15 @@ public class Client {
 		}
 
 		this.clientInfo = new ClientInfo(configReader);
+		if(serverPort != 0){
+			this.clientInfo.getConnectionInfo().setServerPort(serverPort);
+		}
+		if (serverIP != null){
+			this.clientInfo.getConnectionInfo().setServerIp(serverIP);
+		}
+		if (clientPort != 0){
+			this.clientInfo.getConnectionInfo().setClientPort(clientPort);
+		}
 		try {
 			this.clientInfo.loginPrompt(true);
 		} catch (Exception e) {
@@ -84,46 +107,9 @@ public class Client {
 		}
 	}
 	
-	public void sendMessage(String peername, String message){
-		PeerInfo peerInfo = this.peers.getPeerByUserName(peername);
-
-		if (peerInfo == null) {
-			System.out.println(peername + "is not online anymore");
-			return;
-		}
-		String[] messageParams = new String[2];
-		messageParams[0] = this.clientInfo.getUserId().toString();
-		
-		String[] encryptedMessageParams = new String[]{message, String.valueOf(System.currentTimeMillis())};
-		String encryptedMessage = null;
-		try {
-			encryptedMessage = CryptoLibrary.aesEncrypt(
-				peerInfo.getSecretKey(),
-				HeaderHandler.pack(encryptedMessageParams)
-			);
-		} catch (EncryptionException e) {
-			System.out.println("Error encrypting message");
-			e.printStackTrace();
-			return;
-		}
-		
-		String hMac;
-		try {
-			hMac = CryptoLibrary.hmacCreate(
-				peerInfo.getSecretKey(), encryptedMessage
-			);
-		} catch (HmacException e) {
-			System.out.println("Error generating hmac for message");
-			e.printStackTrace();
-			return;
-		}
-		
-		messageParams[1] = hMac;
-		this.clientInfo.sendMessage(HeaderHandler.pack(messageParams), MessageType.CLIENT_CLIENT_MESSAGE, peerInfo.getPeerIp(), peerInfo.getPeerPort());
-	}
-	
 	public void logout(){
-		this.running = true;
+		this.running = false;
+		this.clientInfo.setIsLoggedIn(false);
 		this.clientInfo.destoryKeys();
 		this.peers.clear();
 	}

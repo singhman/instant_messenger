@@ -15,7 +15,7 @@ import common.HeaderHandler;
 import common.MessageType;
 import common.MessageType.UnsupportedMessageTypeException;
 
-/* Takes cares of incoming TCP Connections */
+/* Listens for the incoming TCP Connections */
 public class ClientListener implements Runnable {
 	
 	private final int port;
